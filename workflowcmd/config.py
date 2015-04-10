@@ -8,6 +8,7 @@ import argh
 from path import path
 from cloudify_cli import utils as cli_utils
 from cloudify.workflows import local
+from dsl_parser import functions
 
 
 def load(package, config_path, storage_dir):
@@ -55,7 +56,11 @@ def _parse_commands(parser, commands, config, storage_dir, namespace=None):
 
 
 def _parse_command(name, command, config, storage_dir):
-    def func(*args, **kwargs):
+
+    @argh.expects_obj
+    @argh.named(name)
+    def func(args):
+        parameters = _parse_parameters(command.get('parameters', {}), args)
         task_config = {
             'retries': 0,
             'retry_interval': 1,
@@ -65,21 +70,46 @@ def _parse_command(name, command, config, storage_dir):
         command_task_config = command.get('task', {})
         task_config.update(global_task_config)
         task_config.update(command_task_config)
-
         sys.path.append(storage_dir / 'local' / 'resources')
         env = local.load_env(name='local',
                              storage=_storage(storage_dir))
-
         env.execute(workflow=command['workflow'],
-                    parameters=command.get('parameters'),
+                    parameters=parameters,
                     task_retries=task_config['retries'],
                     task_retry_interval=task_config['retry_interval'],
                     task_thread_pool_size=task_config['thread_pool_size'])
 
-    func.__name__ = name
+    for arg in reversed(command.get('args', [])):
+        name = arg.pop('name')
+        if not isinstance(name, list):
+            name = [name]
+        argh.arg(*name, **arg)(func)
 
     return func
 
 
 def _storage(storage_dir):
     return local.FileStorage(storage_dir=storage_dir)
+
+
+def _parse_parameters(parameters, args):
+    args = vars(args)
+
+    class Arg(functions.Function):
+        def parse_args(self, _args):
+            self.arg = _args
+
+        def evaluate_runtime(self, *_, **__):
+            return args[self.arg]
+
+        def validate(self, *_, **__):
+            pass
+
+        def evaluate(self, *_, **__):
+            pass
+
+    functions.register(Arg, 'arg')
+    try:
+        return functions.evaluate_functions(parameters, None, None, None, None)
+    finally:
+        functions.unregister('arg')
