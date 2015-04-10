@@ -21,7 +21,6 @@ def load(package, config_path, storage_dir):
 
     blueprint_path = config_path.dirname() / config['blueprint']
     blueprint_dir = blueprint_path.dirname()
-    sys.path.append(blueprint_dir)
     storage_dir = path(os.path.expanduser(storage_dir))
 
     _parse_commands(parser, commands, config, storage_dir)
@@ -31,6 +30,7 @@ def load(package, config_path, storage_dir):
         if (storage_dir / name).exists() and reset:
             shutil.rmtree(storage_dir / name)
         inputs = cli_utils.inputs_to_dict(inputs, 'inputs')
+        sys.path.append(blueprint_dir)
         local.init_env(blueprint_path,
                        inputs=inputs,
                        name=name,
@@ -66,6 +66,7 @@ def _parse_command(name, command, config, storage_dir):
         task_config.update(global_task_config)
         task_config.update(command_task_config)
 
+        sys.path.append(storage_dir / 'local' / 'resources')
         env = local.load_env(name='local',
                              storage=_storage(storage_dir))
 
