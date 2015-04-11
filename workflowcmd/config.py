@@ -107,13 +107,10 @@ def dispatch(package, config_path, storage_dir, blueprint_path):
 
 
 def _parse_parameters(parameters, args):
-    def process_arg(function_args):
-        return args[function_args]
-
-    def process_env(function_args):
-        return os.environ[function_args]
-
-    functions = {'arg': process_arg, 'env': process_env}
+    functions = {
+        'arg': lambda func_args: args[func_args],
+        'env': lambda func_args: os.environ[func_args]
+    }
     for name, process in functions.items():
         dsl_functions.register(_function(process), name)
     try:
