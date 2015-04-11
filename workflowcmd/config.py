@@ -8,7 +8,7 @@ import argh
 from path import path
 from cloudify_cli import utils as cli_utils
 from cloudify.workflows import local
-from dsl_parser import functions
+from dsl_parser import functions as dsl_functions
 
 
 def load(package, config_path, storage_dir):
@@ -44,8 +44,7 @@ def load(package, config_path, storage_dir):
 def _parse_commands(parser, commands, config, storage_dir, namespace=None):
     functions = []
     for name, command in commands.items():
-        if command.get('_nested'):
-            command.pop('_nested')
+        if 'workflow' not in command:
             _parse_commands(parser, command, config, storage_dir,
                             namespace=name)
             continue
@@ -94,7 +93,7 @@ def _storage(storage_dir):
 
 
 def _parse_parameters(parameters, args):
-    class Arg(functions.Function):
+    class Arg(dsl_functions.Function):
         def parse_args(self, _args):
             self.arg = _args
 
@@ -107,8 +106,9 @@ def _parse_parameters(parameters, args):
         def evaluate(self, *_, **__):
             pass
 
-    functions.register(Arg, 'arg')
+    dsl_functions.register(Arg, 'arg')
     try:
-        return functions.evaluate_functions(parameters, None, None, None, None)
+        return dsl_functions.evaluate_functions(parameters,
+                                                None, None, None, None)
     finally:
-        functions.unregister('arg')
+        dsl_functions.unregister('arg')
