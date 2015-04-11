@@ -63,8 +63,7 @@ class Loader(object):
 
         for arg in reversed(command.get('args', [])):
             name = arg.pop('name')
-            if not isinstance(name, list):
-                name = [name]
+            name = name if isinstance(name, list) else [name]
             argh.arg(*name, **arg)(func)
 
         return func
