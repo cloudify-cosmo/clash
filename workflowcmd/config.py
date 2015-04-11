@@ -18,7 +18,7 @@ class Loader(object):
         package_path = path(package.__file__).dirname()
         config_path = package_path / config_path
         self._config = yaml.load(config_path.text())
-        self._blueprint_path = config_path.dirname() / blueprint_path
+        self._blueprint_path = package_path / blueprint_path
         self._blueprint_dir = self._blueprint_path.dirname()
         self._storage_dir = path(os.path.expanduser(storage_dir))
         self._parser = argh.ArghParser()
