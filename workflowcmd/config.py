@@ -126,11 +126,8 @@ def _parse_parameters(parameters, args):
 
 def _function(process):
     class Function(dsl_functions.Function):
-        def validate(self, **_):
-            pass
-
-        def evaluate(self, **_):
-            pass
+        validate = None
+        evaluate = None
 
         def parse_args(self, args):
             self.function_args = args
