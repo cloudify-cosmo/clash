@@ -17,13 +17,13 @@ class Loader(object):
         package = importlib.import_module(package)
         package_path = path(package.__file__).dirname()
         config_path = package_path / config_path
-        self.config = yaml.load(config_path.text())
-        self.blueprint_path = config_path.dirname() / blueprint_path
-        self.blueprint_dir = self.blueprint_path.dirname()
-        self.storage_dir = path(os.path.expanduser(storage_dir))
-        self.parser = argh.ArghParser()
-        self._parse_commands(commands=self.config['commands'])
-        self.parser.add_commands(functions=[self._init_command])
+        self._config = yaml.load(config_path.text())
+        self._blueprint_path = config_path.dirname() / blueprint_path
+        self._blueprint_dir = self._blueprint_path.dirname()
+        self._storage_dir = path(os.path.expanduser(storage_dir))
+        self._parser = argh.ArghParser()
+        self._parse_commands(commands=self._config['commands'])
+        self._parser.add_commands(functions=[self._init_command])
 
     def _parse_commands(self, commands, namespace=None):
         functions = []
@@ -32,7 +32,7 @@ class Loader(object):
                 self._parse_commands(commands=command, namespace=name)
                 continue
             functions.append(self._parse_command(name=name, command=command))
-        self.parser.add_commands(functions=functions, namespace=namespace)
+        self._parser.add_commands(functions=functions, namespace=namespace)
 
     def _parse_command(self, name, command):
         @argh.expects_obj
@@ -45,11 +45,11 @@ class Loader(object):
                 'retry_interval': 1,
                 'thread_pool_size': 1
             }
-            global_task_config = self.config.get('task', {})
+            global_task_config = self._config.get('task', {})
             command_task_config = command.get('task', {})
             task_config.update(global_task_config)
             task_config.update(command_task_config)
-            sys.path.append(self.storage_dir / 'local' / 'resources')
+            sys.path.append(self._storage_dir / 'local' / 'resources')
             env = local.load_env(name='local',
                                  storage=self._storage())
             env.execute(workflow=command['workflow'],
@@ -67,23 +67,23 @@ class Loader(object):
         return func
 
     def _storage(self):
-        return local.FileStorage(storage_dir=self.storage_dir)
+        return local.FileStorage(storage_dir=self._storage_dir)
 
     @argh.named('init')
     def _init_command(self, inputs=None, reset=False):
         name = 'local'
-        local_dir = self.storage_dir / name
+        local_dir = self._storage_dir / name
         if local_dir.exists() and reset:
             shutil.rmtree(local_dir)
         inputs = cli_utils.inputs_to_dict(inputs, 'inputs')
-        sys.path.append(self.blueprint_dir)
-        local.init_env(blueprint_path=self.blueprint_path,
+        sys.path.append(self._blueprint_dir)
+        local.init_env(blueprint_path=self._blueprint_path,
                        inputs=inputs,
                        name=name,
                        storage=self._storage())
 
     def dispatch(self):
-        self.parser.dispatch()
+        self._parser.dispatch()
 
 
 def dispatch(package, config_path, storage_dir, blueprint_path):
@@ -95,19 +95,34 @@ def dispatch(package, config_path, storage_dir, blueprint_path):
 
 
 def _parse_parameters(parameters, args):
-    class Arg(dsl_functions.Function):
-        validate = None
-        evaluate = None
+    def process_arg(function_args):
+        return args[function_args]
 
-        def parse_args(self, _args):
-            self.arg = _args
+    def process_env(function_args):
+        return os.environ[function_args]
 
-        def evaluate_runtime(self, *_, **__):
-            return args[self.arg]
-
-    dsl_functions.register(Arg, 'arg')
+    functions = {'arg': process_arg, 'env': process_env}
+    for name, process in functions.items():
+        dsl_functions.register(_function(process), name)
     try:
         return dsl_functions.evaluate_functions(parameters,
                                                 None, None, None, None)
     finally:
-        dsl_functions.unregister('arg')
+        for name in functions.keys():
+            dsl_functions.unregister(name)
+
+
+def _function(process):
+    class Function(dsl_functions.Function):
+        def validate(self, **_):
+            pass
+
+        def evaluate(self, **_):
+            pass
+
+        def parse_args(self, args):
+            self.function_args = args
+
+        def evaluate_runtime(self, **_):
+            return process(self.function_args)
+    return Function

@@ -1,1 +1,1 @@
-from workflowcmd.config import dispatch
+from workflowcmd.config import dispatch  # noqa
