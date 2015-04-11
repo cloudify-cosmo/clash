@@ -60,6 +60,7 @@ def _parse_command(name, command, config, storage_dir):
     @argh.expects_obj
     @argh.named(name)
     def func(args):
+        args = vars(args)
         parameters = _parse_parameters(command.get('parameters', {}), args)
         task_config = {
             'retries': 0,
@@ -93,8 +94,6 @@ def _storage(storage_dir):
 
 
 def _parse_parameters(parameters, args):
-    args = vars(args)
-
     class Arg(functions.Function):
         def parse_args(self, _args):
             self.arg = _args
