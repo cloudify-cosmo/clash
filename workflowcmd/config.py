@@ -2,6 +2,7 @@ import importlib
 import sys
 import os
 import shutil
+import json as _json
 
 import yaml
 import argh
@@ -13,6 +14,8 @@ from dsl_parser import functions as dsl_functions
 
 class Loader(object):
 
+    _name = 'local'
+
     def __init__(self, package, config_path, storage_dir, blueprint_path):
         package = importlib.import_module(package)
         package_path = path(package.__file__).dirname()
@@ -23,7 +26,8 @@ class Loader(object):
         self._storage_dir = path(os.path.expanduser(storage_dir))
         self._parser = argh.ArghParser()
         self._parse_commands(commands=self._config['commands'])
-        self._parser.add_commands(functions=[self._init_command])
+        self._parser.add_commands(functions=[self._init_command,
+                                             self._outputs_command])
 
     def _parse_commands(self, commands, namespace=None):
         functions = []
@@ -50,8 +54,7 @@ class Loader(object):
             task_config.update(global_task_config)
             task_config.update(command_task_config)
             sys.path.append(self._storage_dir / 'local' / 'resources')
-            env = local.load_env(name='local',
-                                 storage=self._storage())
+            env = self._load_env()
             env.execute(workflow=command['workflow'],
                         parameters=parameters,
                         task_retries=task_config['retries'],
@@ -66,21 +69,31 @@ class Loader(object):
 
         return func
 
+    def _load_env(self):
+        return local.load_env(name=self._name, storage=self._storage())
+
     def _storage(self):
         return local.FileStorage(storage_dir=self._storage_dir)
 
     @argh.named('init')
     def _init_command(self, inputs=None, reset=False):
-        name = 'local'
-        local_dir = self._storage_dir / name
+        local_dir = self._storage_dir / self._name
         if local_dir.exists() and reset:
             shutil.rmtree(local_dir)
         inputs = cli_utils.inputs_to_dict(inputs, 'inputs')
         sys.path.append(self._blueprint_dir)
         local.init_env(blueprint_path=self._blueprint_path,
                        inputs=inputs,
-                       name=name,
+                       name=self._name,
                        storage=self._storage())
+
+    @argh.named('outputs')
+    def _outputs_command(self, json=False):
+        outputs = self._load_env().outputs()
+        if json:
+            return _json.dumps(outputs, sort_keys=True, indent=2)
+        else:
+            return yaml.safe_dump(outputs, default_flow_style=False)
 
     def dispatch(self):
         self._parser.dispatch()
