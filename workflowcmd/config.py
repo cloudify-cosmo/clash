@@ -58,6 +58,15 @@ class Loader(object):
             sys.path.append(self._storage_dir / 'local' / 'resources')
             env = self._load_env()
 
+            original_message_prefix = logs.create_event_message_prefix
+
+            def create_message_prefix(event):
+                message = original_message_prefix(event)
+                search = '<{0}>'.format(self._name)
+                from_index = message.index(search) + len(search) + 1
+                return message[from_index:]
+            logs.create_event_message_prefix = create_message_prefix
+
             if not args.verbose:
                 logs.stdout_event_out = lambda log: None
 
