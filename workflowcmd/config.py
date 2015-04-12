@@ -58,14 +58,7 @@ class Loader(object):
             sys.path.append(self._storage_dir / 'local' / 'resources')
             env = self._load_env()
 
-            original_message_prefix = logs.create_event_message_prefix
-
-            def create_message_prefix(event):
-                message = original_message_prefix(event)
-                search = '<{0}>'.format(self._name)
-                from_index = message.index(search) + len(search) + 1
-                return message[from_index:]
-            logs.create_event_message_prefix = create_message_prefix
+            logs.create_event_message_prefix = self._create_message_prefix
 
             if not args.verbose:
                 logs.stdout_event_out = lambda log: None
@@ -108,6 +101,27 @@ class Loader(object):
             return _json.dumps(outputs, sort_keys=True, indent=2)
         else:
             return yaml.safe_dump(outputs, default_flow_style=False)
+
+    @staticmethod
+    def _create_message_prefix(event):
+        context = event['context']
+        node = context.get('node_name')
+        operation = context.get('operation')
+        source = context.get('source_name')
+        target = context.get('target_name')
+        if operation is not None:
+            operation = operation.split('.')[-1]
+        if source is not None:
+            info = '{0}->{1}|{2}'.format(source, target, operation)
+        else:
+            info_elements = [e for e in [node, operation] if e is not None]
+            info = '.'.join(info_elements)
+        if info:
+            info = '[{0}] '.format(info)
+        message = event['message']['text'].encode('utf-8')
+        if 'cloudify_log' in event['type']:
+            message = '{0}: {1}'.format(event['level'].upper(), message)
+        return '{0}{1}'.format(info, message)
 
     def dispatch(self):
         self._parser.dispatch()
