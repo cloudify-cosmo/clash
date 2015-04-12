@@ -7,6 +7,7 @@ import json as _json
 import yaml
 import argh
 from path import path
+from cloudify import logs
 from cloudify_cli import utils as cli_utils
 from cloudify.workflows import local
 from dsl_parser import functions as dsl_functions
@@ -41,9 +42,10 @@ class Loader(object):
     def _parse_command(self, name, command):
         @argh.expects_obj
         @argh.named(name)
+        @argh.arg('-v', '--verbose', default=False)
         def func(args):
-            args = vars(args)
-            parameters = _parse_parameters(command.get('parameters', {}), args)
+            parameters = _parse_parameters(command.get('parameters', {}),
+                                           vars(args))
             task_config = {
                 'retries': 0,
                 'retry_interval': 1,
@@ -55,6 +57,10 @@ class Loader(object):
             task_config.update(command_task_config)
             sys.path.append(self._storage_dir / 'local' / 'resources')
             env = self._load_env()
+
+            if not args.verbose:
+                logs.stdout_event_out = lambda log: None
+
             env.execute(workflow=command['workflow'],
                         parameters=parameters,
                         task_retries=task_config['retries'],
