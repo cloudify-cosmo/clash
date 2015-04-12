@@ -114,7 +114,7 @@ class Loader(object):
         if source is not None:
             info = '{0}->{1}|{2}'.format(source, target, operation)
         else:
-            info_elements = [e for e in [node, operation] if e is not None]
+            info_elements = filter(None, [node, operation])
             info = '.'.join(info_elements)
         if info:
             info = '[{0}] '.format(info)
