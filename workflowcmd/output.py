@@ -1,6 +1,7 @@
 import sys
 import importlib
 
+import colors
 from cloudify import logs
 
 
@@ -109,22 +110,45 @@ class _Event(dict):
     def type(self):
         return self.get('type')
 
+    @property
+    def event_type(self):
+        return self.get('event_type')
+
 
 def _default_output_handler(event):
     operation = None
     if event.operation is not None:
         operation = event.operation.split('.')[-1]
+        operation = colors.magenta(operation)
     if event.source_name is not None:
-        info = '{0}->{1}|{2}'.format(
-            event.source_name, event.target_name, operation)
+        source_name = colors.cyan(event.source_name)
+        target_name = colors.cyan(event.target_name)
+        info = '{0}->{1}|{2}'.format(source_name, target_name, operation)
     else:
-        info_elements = filter(None, [event.node_name, operation])
+        node_name = event.node_name
+        if node_name:
+            node_name = colors.cyan(node_name)
+        info_elements = filter(None, [node_name, operation])
         info = '.'.join(info_elements)
     if info:
         info = '[{0}] '.format(info)
     message = event.message
+    if event.event_type == 'task_succeeded':
+        message = colors.color(message, fg=10)
+    elif event.event_type == 'task_failed':
+        message = colors.color(message, fg=9)
+    elif event.event_type == 'task_rescheduled':
+        message = colors.color(message, fg=11)
+
     if event.level:
-        message = '{0}: {1}'.format(event.level.upper(), message)
+        level = event.level.upper()
+        if 'INFO' in level:
+            level = colors.green(level)
+        elif 'WARN' in level:
+            level = colors.yellow(level)
+        elif 'ERROR' in level:
+            level = colors.red(level)
+        message = '{0}: {1}'.format(level, message)
     return '{0}{1}'.format(info, message)
 
 

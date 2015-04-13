@@ -9,6 +9,7 @@ setup(
     description='Turn a Cloudify local blueprint into a CLI',
     zip_safe=False,
     install_requires=[
+        'ansicolors',
         'argh',
         'path.py',
         'cloudify>=3.2a8'
