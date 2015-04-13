@@ -11,7 +11,7 @@ from cloudify_cli import utils as cli_utils
 from cloudify.workflows import local
 from dsl_parser import functions as dsl_functions
 
-from workflowcmd import output
+from workflowcmd import output, util
 
 
 class Loader(object):
@@ -71,6 +71,11 @@ class Loader(object):
 
         for arg in reversed(command.get('args', [])):
             name = arg.pop('name')
+            completer = arg.pop('completer', None)
+            if completer:
+                completer = util.load_attribute(completer)
+                completer = completer(self._load_env)
+                arg['completer'] = completer
             name = name if isinstance(name, list) else [name]
             argh.arg(*name, **arg)(func)
 
@@ -140,3 +145,16 @@ def _function(process):
         def evaluate_runtime(self, **_):
             return process(self.function_args)
     return Function
+
+
+class WorkflowCmdCompleter(object):
+
+    def __init__(self, env_loader):
+        self.env_loader = env_loader
+
+    def __call__(self, **kwargs):
+        env = self.env_loader()
+        return self.complete(env, **kwargs)
+
+    def complete(self, **kwargs):
+        pass

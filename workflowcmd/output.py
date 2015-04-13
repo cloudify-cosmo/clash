@@ -1,8 +1,9 @@
 import sys
-import importlib
 
 import colors
 from cloudify import logs
+
+from workflowcmd import util
 
 
 class _Event(dict):
@@ -155,9 +156,7 @@ def _default_output_handler(event):
 def _load_output_handler(output_handler):
     if not output_handler:
         return _default_output_handler
-    module, attr = output_handler.split(':')
-    module = importlib.import_module(module)
-    return getattr(module, attr)
+    return util.load_attribute(output_handler)
 
 
 def _process_event(output_handler, event):
