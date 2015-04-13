@@ -7,10 +7,11 @@ import json as _json
 import yaml
 import argh
 from path import path
-from cloudify import logs
 from cloudify_cli import utils as cli_utils
 from cloudify.workflows import local
 from dsl_parser import functions as dsl_functions
+
+from workflowcmd import output
 
 
 class Loader(object):
@@ -58,10 +59,9 @@ class Loader(object):
             sys.path.append(self._storage_dir / 'local' / 'resources')
             env = self._load_env()
 
-            logs.create_event_message_prefix = self._create_message_prefix
-
-            if not args.verbose:
-                logs.stdout_event_out = lambda log: None
+            output.setup_output(
+                output_handler=self._config.get('output_handler'),
+                verbose=args.verbose)
 
             env.execute(workflow=command['workflow'],
                         parameters=parameters,
@@ -101,27 +101,6 @@ class Loader(object):
             return _json.dumps(outputs, sort_keys=True, indent=2)
         else:
             return yaml.safe_dump(outputs, default_flow_style=False)
-
-    @staticmethod
-    def _create_message_prefix(event):
-        context = event['context']
-        node = context.get('node_name')
-        operation = context.get('operation')
-        source = context.get('source_name')
-        target = context.get('target_name')
-        if operation is not None:
-            operation = operation.split('.')[-1]
-        if source is not None:
-            info = '{0}->{1}|{2}'.format(source, target, operation)
-        else:
-            info_elements = filter(None, [node, operation])
-            info = '.'.join(info_elements)
-        if info:
-            info = '[{0}] '.format(info)
-        message = event['message']['text'].encode('utf-8')
-        if 'cloudify_log' in event['type']:
-            message = '{0}: {1}'.format(event['level'].upper(), message)
-        return '{0}{1}'.format(info, message)
 
     def dispatch(self):
         self._parser.dispatch()
