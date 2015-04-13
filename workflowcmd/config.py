@@ -74,7 +74,7 @@ class Loader(object):
             completer = arg.pop('completer', None)
             if completer:
                 completer = util.load_attribute(completer)
-                completer = completer(self._load_env)
+                completer = Completer(self._load_env, completer)
                 arg['completer'] = completer
             name = name if isinstance(name, list) else [name]
             argh.arg(*name, **arg)(func)
@@ -147,14 +147,12 @@ def _function(process):
     return Function
 
 
-class WorkflowCmdCompleter(object):
+class Completer(object):
 
-    def __init__(self, env_loader):
+    def __init__(self, env_loader, completer):
         self.env_loader = env_loader
+        self.completer = completer
 
     def __call__(self, **kwargs):
         env = self.env_loader()
-        return self.complete(env, **kwargs)
-
-    def complete(self, **kwargs):
-        pass
+        return self.completer(env, **kwargs)
