@@ -59,9 +59,12 @@ class Loader(object):
             sys.path.append(self._storage_dir / 'local' / 'resources')
             env = self._load_env()
 
+            output_handler = command.get('output_handler',
+                                         self._config.get('output_handler'))
             output.setup_output(
-                output_handler=self._config.get('output_handler'),
-                verbose=args.verbose)
+                output_handler=output_handler,
+                verbose=args.verbose,
+                env=env)
 
             env.execute(workflow=command['workflow'],
                         parameters=parameters,
