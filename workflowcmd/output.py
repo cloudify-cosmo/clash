@@ -115,6 +115,14 @@ class _Event(dict):
     def event_type(self):
         return self.get('event_type')
 
+    @property
+    def task_current_retries(self):
+        return self.context.get('task_current_retries')
+
+    @property
+    def task_total_retries(self):
+        return self.context.get('task_total_retries')
+
 
 def _default_output_handler(event, env):
     operation = None
