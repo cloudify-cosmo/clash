@@ -124,41 +124,51 @@ class _Event(dict):
         return self.context.get('task_total_retries')
 
 
+_task_event_color = {
+    'workflow_started': 13,
+    'task_succeeded': 10,
+    'task_failed': 9,
+    'task_rescheduled': 11,
+    'sending_task': 14,
+    'task_started': 13,
+    'workflow_failed': 9,
+    'workflow_succeeded': 10,
+}
+
+
+_log_level_color = {
+    'warn': 'yello',
+    'warning': 'yellow',
+    'error': 'red',
+    'info': 'green'
+}
+
+
 def _default_output_handler(event, env):
-    operation = None
-    if event.operation is not None:
-        operation = event.operation.split('.')[-1]
+    operation = event.operation
+    if operation:
+        operation = operation.split('.')[-1]
         operation = colors.magenta(operation)
-    if event.source_node_name is not None:
+    if event.source_node_name:
         source_name = colors.cyan(event.source_node_name)
         target_name = colors.cyan(event.target_node_name)
-        info = '{}->{}|{}'.format(source_name, target_name, operation)
+        context = '{}->{}|{}'.format(source_name, target_name, operation)
+    elif event.node_name:
+        node_name = colors.cyan(event.node_name)
+        context = node_name
+        if operation:
+            context = '{}.{}'.format(node_name, operation)
     else:
-        node_name = event.node_name
-        if node_name:
-            node_name = colors.cyan(node_name)
-        info_elements = filter(None, [node_name, operation])
-        info = '.'.join(info_elements)
-    if info:
-        info = '[{}] '.format(info)
-    message = event.message
-    if event.event_type == 'task_succeeded':
-        message = colors.color(message, fg=10)
-    elif event.event_type == 'task_failed':
-        message = colors.color(message, fg=9)
-    elif event.event_type == 'task_rescheduled':
-        message = colors.color(message, fg=11)
-
+        context = colors.cyan(event.workflow_id)
+    message = colors.color(
+        event.message,
+        fg=_task_event_color.get(event.event_type, 15))
     if event.level:
-        level = event.level.upper()
-        if 'INFO' in level:
-            level = colors.green(level)
-        elif 'WARN' in level:
-            level = colors.yellow(level)
-        elif 'ERROR' in level:
-            level = colors.red(level)
+        level = colors.color(
+            event.level.upper(),
+            fg=_log_level_color.get(event.level, 15))
         message = '{}: {}'.format(level, message)
-    return '{}{}'.format(info, message)
+    return '[{}] {}'.format(context, message)
 
 
 def _load_output_handler(output_handler):
