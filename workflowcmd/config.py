@@ -59,10 +59,10 @@ class Loader(object):
             sys.path.append(self._storage_dir / 'local' / 'resources')
             env = self._load_env()
 
-            output_handler = command.get('output_handler',
-                                         self._config.get('output_handler'))
+            event_cls = command.get('event_cls',
+                                    self._config.get('event_cls'))
             output.setup_output(
-                output_handler=output_handler,
+                event_cls=event_cls,
                 verbose=args.verbose,
                 env=env)
 

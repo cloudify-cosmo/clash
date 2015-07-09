@@ -1,15 +1,56 @@
-import sys
-
 import colors
+
 from cloudify import logs
 
-from workflowcmd import util
+_task_event_color = {
+    'workflow_started': 13,
+    'task_succeeded': 10,
+    'task_failed': 9,
+    'task_rescheduled': 11,
+    'sending_task': 14,
+    'task_started': 13,
+    'workflow_failed': 9,
+    'workflow_succeeded': 10,
+}
 
+
+_log_level_color = {
+    'warn': 'yellow',
+    'warning': 'yellow',
+    'error': 'red',
+    'info': 'green'
+}
 
 class _Event(dict):
 
     def __init__(self, event):
         self.update(event)
+
+    def __str__(self):
+        operation = self.operation
+        if operation:
+            operation = operation.split('.')[-1]
+            operation = colors.magenta(operation)
+        if self.source_node_name:
+            source_name = colors.cyan(self.source_node_name)
+            target_name = colors.cyan(self.target_node_name)
+            context = '{}->{}|{}'.format(source_name, target_name, operation)
+        elif self.node_name:
+            node_name = colors.cyan(self.node_name)
+            context = node_name
+            if operation:
+                context = '{}.{}'.format(node_name, operation)
+        else:
+            context = colors.cyan(self.workflow_id)
+        message = colors.color(
+            self.message,
+            fg=_task_event_color.get(self.event_type, 15))
+        if self.level:
+            level = colors.color(
+                self.level.upper(),
+                fg=_log_level_color.get(self.level, 15))
+            message = '{}: {}'.format(level, message)
+        return '[{}] {}'.format(context, message)
 
     @property
     def context(self):
@@ -124,79 +165,10 @@ class _Event(dict):
         return self.context.get('task_total_retries')
 
 
-_task_event_color = {
-    'workflow_started': 13,
-    'task_succeeded': 10,
-    'task_failed': 9,
-    'task_rescheduled': 11,
-    'sending_task': 14,
-    'task_started': 13,
-    'workflow_failed': 9,
-    'workflow_succeeded': 10,
-}
+def setup_output(event_cls, verbose, env):
+    if event_cls is None:
+        event_cls = _Event
+    logs.EVENT_CLASS = event_cls
 
-
-_log_level_color = {
-    'warn': 'yello',
-    'warning': 'yellow',
-    'error': 'red',
-    'info': 'green'
-}
-
-
-def _default_output_handler(event, env):
-    operation = event.operation
-    if operation:
-        operation = operation.split('.')[-1]
-        operation = colors.magenta(operation)
-    if event.source_node_name:
-        source_name = colors.cyan(event.source_node_name)
-        target_name = colors.cyan(event.target_node_name)
-        context = '{}->{}|{}'.format(source_name, target_name, operation)
-    elif event.node_name:
-        node_name = colors.cyan(event.node_name)
-        context = node_name
-        if operation:
-            context = '{}.{}'.format(node_name, operation)
-    else:
-        context = colors.cyan(event.workflow_id)
-    message = colors.color(
-        event.message,
-        fg=_task_event_color.get(event.event_type, 15))
-    if event.level:
-        level = colors.color(
-            event.level.upper(),
-            fg=_log_level_color.get(event.level, 15))
-        message = '{}: {}'.format(level, message)
-    return '[{}] {}'.format(context, message)
-
-
-def _load_output_handler(output_handler):
-    if not output_handler:
-        return _default_output_handler
-    return util.load_attribute(output_handler)
-
-
-def _process_event(output_handler, event, env):
-    processed_event = output_handler(event=_Event(event),
-                                     env=env)
-    if not processed_event:
-        return
-    sys.stdout.write('{}\n'.format(processed_event))
-
-
-def setup_output(output_handler, verbose, env):
-    output_handler = _load_output_handler(output_handler)
-
-    def stdout_event_out(event):
-        if not verbose:
-            return
-        logs.populate_base_item(event, 'cloudify_event')
-        _process_event(output_handler, event, env)
-
-    def stdout_log_out(event):
-        logs.populate_base_item(event, 'cloudify_log')
-        _process_event(output_handler, event, env)
-
-    logs.stdout_event_out = stdout_event_out
-    logs.stdout_log_out = stdout_log_out
+    if not verbose:
+        logs.stdout_event_out = lambda l: None
