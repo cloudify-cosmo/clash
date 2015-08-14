@@ -100,7 +100,9 @@ class Loader(object):
         local.init_env(blueprint_path=self._blueprint_path,
                        inputs=inputs,
                        name=self._name,
-                       storage=self._storage())
+                       storage=self._storage(),
+                       ignored_modules=('cloudify_agent.operations',
+                                        'cloudify_agent.installer.operations'))
 
     @argh.named('outputs')
     def _outputs_command(self, json=False):
