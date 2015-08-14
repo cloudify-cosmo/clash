@@ -21,6 +21,7 @@ _log_level_color = {
     'info': 'green'
 }
 
+
 class _Event(dict):
 
     def __init__(self, event):

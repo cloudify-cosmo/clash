@@ -11,7 +11,7 @@ from cloudify_cli import utils as cli_utils
 from cloudify.workflows import local
 from dsl_parser import functions as dsl_functions
 
-from workflowcmd import output, util
+from workflowcmd import output, util, constants
 
 
 class Loader(object):
@@ -101,8 +101,7 @@ class Loader(object):
                        inputs=inputs,
                        name=self._name,
                        storage=self._storage(),
-                       ignored_modules=('cloudify_agent.operations',
-                                        'cloudify_agent.installer.operations'))
+                       ignored_modules=constants.IGNORED_MODULES)
 
     @argh.named('outputs')
     def _outputs_command(self, json=False):
