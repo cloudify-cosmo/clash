@@ -171,7 +171,11 @@ class Event(dict):
 def setup_output(event_cls, verbose, env):
     if event_cls is None:
         event_cls = Event
-    logs.EVENT_CLASS = util.load_attribute(event_cls)
+    else:
+        event_cls = util.load_attribute(event_cls)
+        if hasattr(event_cls, 'factory'):
+            event_cls = event_cls.factory(env=env, verbose=verbose)
+    logs.EVENT_CLASS = event_cls
 
     if not verbose:
         logs.stdout_event_out = lambda l: None
