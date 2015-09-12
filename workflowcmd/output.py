@@ -2,6 +2,8 @@ import colors
 
 from cloudify import logs
 
+from workflowcmd import util
+
 _task_event_color = {
     'workflow_started': 13,
     'task_succeeded': 10,
@@ -22,7 +24,7 @@ _log_level_color = {
 }
 
 
-class _Event(dict):
+class Event(dict):
 
     def __init__(self, event):
         self.update(event)
@@ -168,8 +170,8 @@ class _Event(dict):
 
 def setup_output(event_cls, verbose, env):
     if event_cls is None:
-        event_cls = _Event
-    logs.EVENT_CLASS = event_cls
+        event_cls = Event
+    logs.EVENT_CLASS = util.load_attribute(event_cls)
 
     if not verbose:
         logs.stdout_event_out = lambda l: None
