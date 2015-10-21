@@ -178,4 +178,6 @@ def setup_output(event_cls, verbose, env):
     logs.EVENT_CLASS = event_cls
 
     if not verbose:
-        logs.stdout_event_out = lambda l: None
+        def stub(*_):
+            pass
+        logs.stdout_event_out = stub
