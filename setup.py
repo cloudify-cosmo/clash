@@ -12,6 +12,6 @@ setup(
         'ansicolors',
         'argh',
         'path.py',
-        'cloudify>=3.2a8'
+        'cloudify>=3.3'
     ]
 )
