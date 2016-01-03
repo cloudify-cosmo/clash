@@ -40,18 +40,19 @@ class Loader(object):
         package_path = path(package.__file__).dirname()
         config_path = package_path / config_path
         config_dir = config_path.dirname()
-        self._config = yaml.load(config_path.text())
-        self._blueprint_path = config_dir / self._config['blueprint_path']
-        self._blueprint_dir = self._blueprint_path.dirname()
+        self.config = yaml.load(config_path.text())
+        self.blueprint_path = config_dir / self.config['blueprint_path']
+        self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
-
-        self._parser.add_commands(functions=[self._setup_command])
+        self._parse_setup_command(setup=self.config['setup'])
         storage_dir = _read_global_cdev_conf().get('storage_dir')
         if storage_dir:
-            self._storage_dir = path(storage_dir)
-            self._parse_commands(commands=self._config['commands'])
+            self.storage_dir = path(storage_dir)
+            self._parse_commands(commands=self.config['commands'])
             self._parser.add_commands(functions=[self._init_command,
                                                  self._outputs_command])
+        else:
+            self.storage_dir = None
 
     def _parse_commands(self, commands, namespace=None):
         functions = []
@@ -67,22 +68,23 @@ class Loader(object):
         @argh.named(name)
         @argh.arg('-v', '--verbose', default=False)
         def func(args):
-            parameters = _parse_parameters(command.get('parameters', {}),
-                                           vars(args))
+            parameters = self._parse_parameters(
+                parameters=command.get('parameters', {}),
+                args=vars(args))
             task_config = {
                 'retries': 0,
                 'retry_interval': 1,
                 'thread_pool_size': 1
             }
-            global_task_config = self._config.get('task', {})
+            global_task_config = self.config.get('task', {})
             command_task_config = command.get('task', {})
             task_config.update(global_task_config)
             task_config.update(command_task_config)
-            sys.path.append(self._storage_dir / self._name / 'resources')
+            sys.path.append(self.storage_dir / self._name / 'resources')
             env = self._load_env()
 
             event_cls = command.get('event_cls',
-                                    self._config.get('event_cls'))
+                                    self.config.get('event_cls'))
             output.setup_output(event_cls=event_cls,
                                 verbose=args.verbose,
                                 env=env)
@@ -92,50 +94,54 @@ class Loader(object):
                         task_retries=task_config['retries'],
                         task_retry_interval=task_config['retry_interval'],
                         task_thread_pool_size=task_config['thread_pool_size'])
-
-        for arg in reversed(command.get('args', [])):
-            name = arg.pop('name')
-            completer = arg.pop('completer', None)
-            if completer:
-                completer = util.load_attribute(completer)
-                completer = Completer(self._load_env, completer)
-                arg['completer'] = completer
-            name = name if isinstance(name, list) else [name]
-            argh.arg(*name, **arg)(func)
-
+        self._add_args_to_func(func, command.get('args', []))
         return func
 
     def _load_env(self):
         return local.load_env(name=self._name, storage=self._storage())
 
     def _storage(self):
-        return local.FileStorage(storage_dir=self._storage_dir)
+        return local.FileStorage(storage_dir=self.storage_dir)
 
-    @argh.named('setup')
-    def _setup_command(self, storage_dir):
-        self._storage_dir = path(storage_dir)
-        _update_global_cdev_conf({'storage_dir': storage_dir})
-        with open(self._blueprint_path) as f:
-            blueprint = yaml.safe_load(f)
-        inputs = {key: value.get('default', '_')
-                  for key, value in blueprint.get('inputs').items()}
-        inputs_path = self._storage_dir / 'inputs.yaml'
-        inputs_path.write_text(yaml.safe_dump(inputs,
-                                              default_flow_style=False))
+    def _parse_setup_command(self, setup):
+        @argh.expects_obj
+        @argh.named('setup')
+        def func(args):
+            storage_dir = args.storage_dir
+            self.storage_dir = path(storage_dir)
+            _update_global_cdev_conf({'storage_dir': storage_dir})
+            with open(self.blueprint_path) as f:
+                blueprint = yaml.safe_load(f)
+            inputs = {key: value.get('default', '_')
+                      for key, value in blueprint.get('inputs').items()}
+            inputs.update(self._parse_parameters(
+                parameters=setup.get('inputs', {}),
+                args=vars(args)))
+            inputs_path = self.storage_dir / 'inputs.yaml'
+            inputs_path.write_text(yaml.safe_dump(inputs,
+                                                  default_flow_style=False))
+            after_setup_func = setup.get('after_setup')
+            if after_setup_func:
+                after_setup = util.load_attribute(after_setup_func)
+                after_setup(self)
+
+        self._add_args_to_func(func, setup.get('args', []))
+        argh.arg('-s', '--storage_dir', required=True)(func)
+        self._parser.add_commands(functions=[func])
 
     @argh.named('init')
     def _init_command(self, reset=False):
-        local_dir = self._storage_dir / self._name
+        local_dir = self.storage_dir / self._name
         if local_dir.exists() and reset:
             shutil.rmtree(local_dir)
-        inputs = cli_utils.inputs_to_dict(self._storage_dir / 'inputs.yaml',
+        inputs = cli_utils.inputs_to_dict(self.storage_dir / 'inputs.yaml',
                                           'inputs')
-        sys.path.append(self._blueprint_dir)
-        local.init_env(blueprint_path=self._blueprint_path,
+        sys.path.append(self.blueprint_dir)
+        local.init_env(blueprint_path=self.blueprint_path,
                        inputs=inputs,
                        name=self._name,
                        storage=self._storage(),
-                       ignored_modules=self._config.get('ignored_modules', []))
+                       ignored_modules=self.config.get('ignored_modules', []))
 
     @argh.named('outputs')
     def _outputs_command(self, json=False):
@@ -145,6 +151,32 @@ class Loader(object):
         else:
             return yaml.safe_dump(outputs, default_flow_style=False)
 
+    def _add_args_to_func(self, func, args):
+        for arg in reversed(args):
+            name = arg.pop('name')
+            completer = arg.pop('completer', None)
+            if completer:
+                completer = util.load_attribute(completer)
+                completer = Completer(self._load_env, completer)
+                arg['completer'] = completer
+            name = name if isinstance(name, list) else [name]
+            argh.arg(*name, **arg)(func)
+
+    def _parse_parameters(self, parameters, args):
+        functions = {
+            'arg': lambda func_args: args[func_args],
+            'env': lambda func_args: os.environ[func_args],
+            'loader': lambda func_args: getattr(self, func_args)
+        }
+        for name, process in functions.items():
+            dsl_functions.register(_function(process), name)
+        try:
+            return dsl_functions.evaluate_functions(parameters,
+                                                    None, None, None, None)
+        finally:
+            for name in functions.keys():
+                dsl_functions.unregister(name)
+
     def dispatch(self):
         self._parser.dispatch()
 
@@ -152,21 +184,6 @@ class Loader(object):
 def dispatch(package, config_path):
     loader = Loader(package=package, config_path=config_path)
     loader.dispatch()
-
-
-def _parse_parameters(parameters, args):
-    functions = {
-        'arg': lambda func_args: args[func_args],
-        'env': lambda func_args: os.environ[func_args]
-    }
-    for name, process in functions.items():
-        dsl_functions.register(_function(process), name)
-    try:
-        return dsl_functions.evaluate_functions(parameters,
-                                                None, None, None, None)
-    finally:
-        for name in functions.keys():
-            dsl_functions.unregister(name)
 
 
 def _function(process):
