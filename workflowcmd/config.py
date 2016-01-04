@@ -26,11 +26,13 @@ from path import path
 from dsl_parser import functions as dsl_functions
 from cloudify.workflows import local
 
-from workflowcmd import output, util
+from workflowcmd import output, module
+
+WORKFLOWCMD_CONF_PATH = 'WORKFLOWCMD_CONF_PATH'
 
 
 def _workflowcmd_conf_path():
-    return os.path.expanduser(os.environ.get('WORKFLOWCMD_CONF_PATH',
+    return os.path.expanduser(os.environ.get(WORKFLOWCMD_CONF_PATH,
                                              '~/.workflowcmd'))
 
 
@@ -142,7 +144,7 @@ class Loader(object):
                                                   default_flow_style=False))
             after_setup_func = setup.get('after_setup')
             if after_setup_func:
-                after_setup = util.load_attribute(after_setup_func)
+                after_setup = module.load_attribute(after_setup_func)
                 after_setup(self)
 
         self._add_args_to_func(func, setup.get('args', []))
@@ -176,7 +178,7 @@ class Loader(object):
             name = arg.pop('name')
             completer = arg.pop('completer', None)
             if completer:
-                completer = util.load_attribute(completer)
+                completer = module.load_attribute(completer)
                 completer = Completer(self._load_env, completer)
                 arg['completer'] = completer
             name = name if isinstance(name, list) else [name]

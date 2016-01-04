@@ -18,7 +18,7 @@ import colors
 
 from cloudify import logs
 
-from workflowcmd import util
+from workflowcmd import module
 
 _task_event_color = {
     'workflow_started': 13,
@@ -188,7 +188,7 @@ def setup_output(event_cls, verbose, env):
     if event_cls is None:
         event_cls = Event
     else:
-        event_cls = util.load_attribute(event_cls)
+        event_cls = module.load_attribute(event_cls)
         if hasattr(event_cls, 'factory'):
             event_cls = event_cls.factory(env=env, verbose=verbose)
     logs.EVENT_CLASS = event_cls
