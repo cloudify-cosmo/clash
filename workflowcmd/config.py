@@ -110,7 +110,7 @@ class Loader(object):
         @argh.expects_obj
         @argh.named('setup')
         def func(args):
-            storage_dir = args.storage_dir
+            storage_dir = args.storage_dir or os.getcwd()
             self.storage_dir = path(storage_dir)
             _update_workflowcmd_conf(
                 {self.config['name']: {'storage_dir': storage_dir}})
@@ -130,7 +130,7 @@ class Loader(object):
                 after_setup(self)
 
         self._add_args_to_func(func, setup.get('args', []))
-        argh.arg('-s', '--storage_dir', required=True)(func)
+        argh.arg('-s', '--storage_dir')(func)
         self._parser.add_commands(functions=[func])
 
     @argh.named('init')
