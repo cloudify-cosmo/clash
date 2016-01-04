@@ -30,6 +30,7 @@ class BaseTest(unittest.TestCase):
         self.workdir = path(tempfile.mkdtemp(prefix='workflowcmd-tests-'))
         self.workflowcmd_conf_path = self.workdir / '.conf'
         os.environ[config.WORKFLOWCMD_CONF_PATH] = self.workflowcmd_conf_path
+        self.addCleanup(self.cleanup)
 
     def cleanup(self):
         shutil.rmtree(self.workdir, ignore_errors=True)
