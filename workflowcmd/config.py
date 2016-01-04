@@ -13,22 +13,25 @@ from cloudify.workflows import local
 from workflowcmd import output, util
 
 
-def _global_cdev_conf_path():
-    return os.path.expanduser(os.environ.get('CDEV_CONF_PATH', '~/.cdev'))
+def _workflowcmd_conf_path():
+    return os.path.expanduser(os.environ.get('WORKFLOWCMD_CONF_PATH',
+                                             '~/.workflowcmd'))
 
 
-def _read_global_cdev_conf():
-    cdev_conf_path = _global_cdev_conf_path()
-    if not os.path.exists(cdev_conf_path):
+def _read_workflowcmd_conf():
+    conf_path = _workflowcmd_conf_path()
+    if not os.path.exists(conf_path):
         return {}
-    with open(cdev_conf_path) as f:
+    with open(conf_path) as f:
         return yaml.safe_load(f)
 
 
-def _update_global_cdev_conf(conf):
-    cdev_conf_path = _global_cdev_conf_path()
-    with open(cdev_conf_path, 'w') as f:
-        return yaml.safe_dump(conf, f)
+def _update_workflowcmd_conf(conf):
+    current_conf = _read_workflowcmd_conf()
+    current_conf.update(conf)
+    conf_path = _workflowcmd_conf_path()
+    with open(conf_path, 'w') as f:
+        return yaml.safe_dump(current_conf, f)
 
 
 class Loader(object):
@@ -44,7 +47,8 @@ class Loader(object):
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
         self._parse_setup_command(setup=self.config['setup'])
-        storage_dir = _read_global_cdev_conf().get('storage_dir')
+        storage_dir = _read_workflowcmd_conf().get(
+            self.config['name'], {}).get('storage_dir')
         if storage_dir:
             self.storage_dir = path(storage_dir)
             self._parse_commands(commands=self.config['commands'])
@@ -108,7 +112,8 @@ class Loader(object):
         def func(args):
             storage_dir = args.storage_dir
             self.storage_dir = path(storage_dir)
-            _update_global_cdev_conf({'storage_dir': storage_dir})
+            _update_workflowcmd_conf(
+                {self.config['name']: {'storage_dir': storage_dir}})
             with open(self.blueprint_path) as f:
                 blueprint = yaml.safe_load(f)
             inputs = {key: value.get('default', '_')

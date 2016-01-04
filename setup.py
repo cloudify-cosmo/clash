@@ -13,6 +13,7 @@ setup(
         'argh',
         'path.py',
         'cloudify-plugins-common>=3.3.0,<3.4',
-        'cloudify-dsl-parser>=3.3.0,<3.4'
+        'cloudify-dsl-parser>=3.3.0,<3.4',
+        'cloudify-script-plugin>=3.3.0,<3.4'
     ]
 )
