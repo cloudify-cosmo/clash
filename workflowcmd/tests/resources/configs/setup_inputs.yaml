@@ -1,0 +1,8 @@
+blueprint_path: ../blueprints/blueprint3.yaml
+name: setup_inputs
+
+setup:
+
+  inputs:
+    input2: input2_setup
+    input4: input4_setup

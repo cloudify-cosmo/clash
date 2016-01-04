@@ -1,0 +1,13 @@
+blueprint_path: ../blueprints/blueprint2.yaml
+name: setup_args
+
+setup:
+
+  args:
+    - name: arg1
+    - name: --arg2
+      required: true
+
+  inputs:
+    arg1: { arg: arg1 }
+    arg2: { arg: arg2 }

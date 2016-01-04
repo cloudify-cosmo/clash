@@ -1,0 +1,6 @@
+blueprint_path: ../blueprints/blueprint2.yaml
+name: after_setup
+
+setup:
+
+  after_setup: workflowcmd.tests.commands.test_setup:after_setup

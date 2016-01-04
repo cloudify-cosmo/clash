@@ -15,18 +15,58 @@
 ############
 
 import os
-import unittest
 
 import yaml
+from path import path
 from mock import patch
 
 from workflowcmd import config
 from workflowcmd import tests
+from workflowcmd.tests import resources
 
 
-class TestWorkflowConfPath1(unittest.TestCase):
+class TestLoader(tests.BaseTest):
+
+    relative_config_path = path('configs') / 'config1.yaml'
+    full_config_path = resources.DIR / relative_config_path
+
+    def test_properties(self):
+        loader = self._init_loader()
+        config1 = yaml.safe_load(self.full_config_path.text())
+        expected_blueprint_path = (self.full_config_path.dirname() /
+                                   config1['blueprint_path'])
+        expected_blueprint_dir = expected_blueprint_path.dirname()
+        self.assertEqual(loader.config, config1)
+        self.assertEqual(loader.blueprint_path, expected_blueprint_path)
+        self.assertEqual(loader.blueprint_dir, expected_blueprint_dir)
+        self.assertIsNone(loader.storage_dir)
+
+    def test_parse_parameters(self):
+        loader = self._init_loader()
+        args = {'arg1': 'arg1_value'}
+        with patch.dict(os.environ, {'MY_ENV_VAR': 'MY_ENV_VAR_VALUE'}):
+            parsed_params = loader._parse_parameters({
+                'arg_based_param': {'arg': 'arg1'},
+                'env_based_param': {'env': 'MY_ENV_VAR'},
+                'loader_based_param': {'loader': 'config'},
+                'concat_based_param': {'concat': ['a', 'b', 'c']}
+            }, args=args)
+        self.assertEqual(parsed_params, {
+            'arg_based_param': 'arg1_value',
+            'env_based_param': 'MY_ENV_VAR_VALUE',
+            'loader_based_param': loader.config,
+            'concat_based_param': 'abc'
+        })
+
+    def _init_loader(self):
+        return config.Loader(package=resources,
+                             config_path=self.relative_config_path)
+
+
+class TestWorkflowConfPath(tests.BaseTest):
 
     def test_default_workflowcmd_conf_path(self):
+        del os.environ[config.WORKFLOWCMD_CONF_PATH]
         self.assertEqual(config._workflowcmd_conf_path(),
                          os.path.expanduser('~/.workflowcmd'))
 
@@ -36,9 +76,6 @@ class TestWorkflowConfPath1(unittest.TestCase):
                         {config.WORKFLOWCMD_CONF_PATH: '~/custom'}):
             self.assertEqual(config._workflowcmd_conf_path(),
                              os.path.expanduser(custom_path))
-
-
-class TestWorkflowConfPath(tests.BaseTest):
 
     def test_read_workflowcmd_conf(self):
         mock_data = {'some': 'mock_data'}

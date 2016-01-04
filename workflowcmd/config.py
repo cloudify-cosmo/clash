@@ -18,6 +18,7 @@ import sys
 import os
 import shutil
 import json as _json
+import StringIO
 
 import yaml
 import argh
@@ -41,7 +42,7 @@ def _read_workflowcmd_conf():
     if not os.path.exists(conf_path):
         return {}
     with open(conf_path) as f:
-        return yaml.safe_load(f)
+        return yaml.safe_load(f) or {}
 
 
 def _update_workflowcmd_conf(conf):
@@ -64,12 +65,12 @@ class Loader(object):
         self.blueprint_path = config_dir / self.config['blueprint_path']
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
-        self._parse_setup_command(setup=self.config['setup'])
+        self._parse_setup_command(setup=self.config.get('setup', {}))
         storage_dir = _read_workflowcmd_conf().get(
             self.config['name'], {}).get('storage_dir')
         if storage_dir:
             self.storage_dir = path(storage_dir)
-            self._parse_commands(commands=self.config['commands'])
+            self._parse_commands(commands=self.config.get('commands', {}))
             self._parser.add_commands(functions=[self._init_command,
                                                  self._outputs_command])
         else:
@@ -128,14 +129,18 @@ class Loader(object):
         @argh.expects_obj
         @argh.named('setup')
         def func(args):
+            if self.storage_dir and not args.reset:
+                raise argh.CommandError('storage dir already configured. pass'
+                                        '--reset to override.')
             storage_dir = args.storage_dir or os.getcwd()
             self.storage_dir = path(storage_dir)
+            self.storage_dir.mkdir_p()
             _update_workflowcmd_conf(
                 {self.config['name']: {'storage_dir': storage_dir}})
             with open(self.blueprint_path) as f:
-                blueprint = yaml.safe_load(f)
+                blueprint = yaml.safe_load(f) or {}
             inputs = {key: value.get('default', '_')
-                      for key, value in blueprint.get('inputs').items()}
+                      for key, value in blueprint.get('inputs', {}).items()}
             inputs.update(self._parse_parameters(
                 parameters=setup.get('inputs', {}),
                 args=vars(args)))
@@ -148,7 +153,8 @@ class Loader(object):
                 after_setup(self)
 
         self._add_args_to_func(func, setup.get('args', []))
-        argh.arg('-s', '--storage_dir')(func)
+        argh.arg('-s', '--storage-dir')(func)
+        argh.arg('-r', '--reset', default=False)(func)
         self._parser.add_commands(functions=[func])
 
     @argh.named('init')
@@ -157,7 +163,7 @@ class Loader(object):
         if local_dir.exists() and reset:
             shutil.rmtree(local_dir)
         with open(self.storage_dir / 'inputs.yaml') as f:
-            inputs = yaml.safe_load(f)
+            inputs = yaml.safe_load(f) or {}
         sys.path.append(self.blueprint_dir)
         local.init_env(blueprint_path=self.blueprint_path,
                        inputs=inputs,
@@ -200,7 +206,13 @@ class Loader(object):
                 dsl_functions.unregister(name)
 
     def dispatch(self):
-        self._parser.dispatch()
+        errors = StringIO.StringIO()
+        self._parser.dispatch(errors_file=errors)
+        errors_value = errors.getvalue()
+        if errors_value:
+            errors_value = errors_value.replace('CommandError',
+                                                'error').strip()
+            sys.exit(errors_value)
 
 
 def dispatch(package, config_path):
