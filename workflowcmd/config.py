@@ -9,7 +9,6 @@ from path import path
 
 from dsl_parser import functions as dsl_functions
 from cloudify.workflows import local
-from cloudify_cli import utils as cli_utils
 
 from workflowcmd import output, util
 
@@ -134,8 +133,8 @@ class Loader(object):
         local_dir = self.storage_dir / self._name
         if local_dir.exists() and reset:
             shutil.rmtree(local_dir)
-        inputs = cli_utils.inputs_to_dict(self.storage_dir / 'inputs.yaml',
-                                          'inputs')
+        with open(self.storage_dir / 'inputs.yaml') as f:
+            inputs = yaml.safe_load(f)
         sys.path.append(self.blueprint_dir)
         local.init_env(blueprint_path=self.blueprint_path,
                        inputs=inputs,

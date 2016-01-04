@@ -12,6 +12,7 @@ setup(
         'ansicolors',
         'argh',
         'path.py',
-        'cloudify>=3.3'
+        'cloudify-plugins-common>=3.3.0,<3.4',
+        'cloudify-dsl-parser>=3.3.0,<3.4'
     ]
 )
