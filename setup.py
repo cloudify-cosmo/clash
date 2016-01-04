@@ -9,11 +9,13 @@ setup(
     description='Turn a Cloudify local blueprint into a CLI',
     zip_safe=False,
     install_requires=[
+        'argcomplete',
         'ansicolors',
         'argh',
         'path.py',
         'cloudify-plugins-common>=3.3.0,<3.4',
         'cloudify-dsl-parser>=3.3.0,<3.4',
-        'cloudify-script-plugin>=1.3.0,<1.4'
+        'cloudify-script-plugin>=1.3.0,<1.4',
+
     ]
 )
