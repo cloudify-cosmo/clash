@@ -55,7 +55,7 @@ class BaseTest(unittest.TestCase):
         with self.workdir:
             try:
                 command = sh.Command(sys.executable).bake(__file__, _env=env)
-                command(config_path, *args, **kwargs)
+                return command(config_path, *args, **kwargs)
             except sh.ErrorReturnCode as e:
                 print 'out: {0}\nerr: {1}\n'.format(e.stdout, e.stderr)
                 raise
