@@ -1,0 +1,16 @@
+tosca_definitions_version: cloudify_dsl_1_2
+
+node_types:
+  type: {}
+
+node_templates:
+  node:
+    type: type
+
+workflows:
+  workflow4: blueprint_workflows/workflow4.py
+
+plugins:
+  script:
+    executor: central_deployment_agent
+    install: false

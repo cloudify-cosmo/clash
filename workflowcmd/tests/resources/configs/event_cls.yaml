@@ -1,0 +1,17 @@
+blueprint_path: ../blueprints/event_cls/blueprint.yaml
+name: event_cls
+
+event_cls: event_cls_impls:Event1
+
+commands:
+
+  command1:
+    workflow: workflow4
+
+  command2:
+    workflow: workflow4
+    event_cls: event_cls_impls:Event2
+
+  command3:
+    workflow: workflow4
+    event_cls: event_cls_impls:Event3Factory

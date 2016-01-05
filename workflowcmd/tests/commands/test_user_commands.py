@@ -79,3 +79,15 @@ class TestUserCommands(tests.BaseTest):
         self.dispatch(config_path, 'init')
         output = self.dispatch(config_path, 'command1').stdout
         self.assertIn('all good', output)
+
+    def test_event_cls(self):
+        config_path = 'event_cls.yaml'
+        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'init')
+        output1 = self.dispatch(config_path, 'command1').stdout
+        output2 = self.dispatch(config_path, 'command2').stdout
+        output3 = self.dispatch(config_path, 'command3',
+                                verbose=True).stdout
+        self.assertIn('EVENT1', output1)
+        self.assertIn('EVENT2', output2)
+        self.assertIn('EVENT3 env: .local, verbose: True', output3)
