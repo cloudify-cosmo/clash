@@ -1,0 +1,5 @@
+blueprint_path: ../blueprints/ignored_modules.yaml
+name: ignored_modules
+
+ignored_modules:
+  - path.to.module.that.does.not

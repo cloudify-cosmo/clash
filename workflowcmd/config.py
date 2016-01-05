@@ -130,7 +130,7 @@ class Loader(object):
         @argh.named('setup')
         def func(args):
             if self.storage_dir and not args.reset:
-                raise argh.CommandError('storage dir already configured. pass'
+                raise argh.CommandError('storage dir already configured. pass '
                                         '--reset to override.')
             storage_dir = args.storage_dir or os.getcwd()
             self.storage_dir = path(storage_dir)

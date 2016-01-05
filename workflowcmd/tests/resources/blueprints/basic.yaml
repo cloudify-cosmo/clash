@@ -1,0 +1,15 @@
+tosca_definitions_version: cloudify_dsl_1_2
+
+inputs:
+  input: {}
+
+node_types:
+  type: {}
+
+node_templates:
+  node:
+    type: type
+
+outputs:
+  output:
+    value: { get_input: input }

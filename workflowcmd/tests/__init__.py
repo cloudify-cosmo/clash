@@ -24,6 +24,8 @@ import sh
 import yaml
 from path import path
 
+from cloudify.workflows import local
+
 import workflowcmd
 from workflowcmd import dispatch
 from workflowcmd import config
@@ -73,6 +75,15 @@ class BaseTest(unittest.TestCase):
     def inputs(self, config_path):
         storage_dir = self.storage_dir(config_path)
         return yaml.safe_load((storage_dir / 'inputs.yaml').text())
+
+    def set_inputs(self, config_path, inputs):
+        storage_dir = self.storage_dir(config_path)
+        (storage_dir / 'inputs.yaml').write_text(yaml.safe_dump(inputs))
+
+    def env(self, config_path):
+        storage_dir = self.storage_dir(config_path)
+        storage = local.FileStorage(storage_dir)
+        return local.load_env('.local', storage)
 
 
 def main():

@@ -14,9 +14,45 @@
 # limitations under the License.
 ############
 
+import sh
+
 from workflowcmd import tests
 
 
 class TestInit(tests.BaseTest):
 
-    pass
+    INPUT = 'INPUT_VALUE'
+
+    def test_basic(self, setup=True, reset=False, config_path='basic.yaml'):
+        if setup:
+            self.dispatch(config_path, 'setup')
+            inputs = self.inputs(config_path)
+            inputs['input'] = self.INPUT
+            self.set_inputs(config_path, inputs)
+        self.dispatch(config_path, 'init', reset=reset)
+        env = self.env(config_path)
+        instances = env.storage.get_node_instances()
+        self.assertEqual(1, len(instances))
+        self.assertEqual('node', instances[0].node_id)
+        return env
+
+    def test_already_initialized_no_reset(self):
+        self.test_basic()
+        with self.assertRaises(sh.ErrorReturnCode):
+            self.test_basic(setup=False, reset=False)
+
+    def test_already_initialized_reset(self):
+        self.test_basic()
+        self.test_basic(setup=False, reset=True)
+
+    def test_inputs(self):
+        env = self.test_basic()
+        self.assertEqual(env.outputs()['output'], self.INPUT)
+
+    def test_ignored_modules_sanity(self):
+        with self.assertRaises(sh.ErrorReturnCode) as c:
+            self.test_basic(config_path='ignored_modules_sanity.yaml')
+        self.assertIn('No module named', c.exception.stderr)
+
+    def test_ignored_modules(self):
+        self.test_basic(config_path='ignored_modules.yaml')
