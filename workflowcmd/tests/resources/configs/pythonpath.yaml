@@ -1,0 +1,7 @@
+blueprint_path: ../blueprints/pythonpath/blueprint.yaml
+name: pythonpath
+
+commands:
+
+  command1:
+    workflow: workflow3

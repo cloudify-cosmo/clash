@@ -22,7 +22,8 @@ setup(
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
     packages=['workflowcmd'],
-    description='Turn a Cloudify local blueprint into a CLI',
+    description='Framework to wrap Cloudify local based blueprints as CLIs',
+    license='Apache License, Version 2.0',
     zip_safe=False,
     install_requires=[
         'argcomplete',

@@ -72,3 +72,10 @@ class TestUserCommands(tests.BaseTest):
             'retry_interval': counts[1],
             'thread_pool_size': counts[2]
         })
+
+    def test_update_python_path(self):
+        config_path = 'pythonpath.yaml'
+        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'init')
+        output = self.dispatch(config_path, 'command1').stdout
+        self.assertIn('all good', output)
