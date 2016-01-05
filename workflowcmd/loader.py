@@ -40,7 +40,8 @@ class Loader(object):
         package_path = path(package.__file__).dirname()
         config_path = package_path / config_path
         config_dir = config_path.dirname()
-        self.config = _json.loads(_json.dumps(yaml.load(config_path.text())))
+        self.config = _json.loads(_json.dumps(yaml.safe_load(
+            config_path.text())))
         self.blueprint_path = config_dir / self.config['blueprint_path']
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
