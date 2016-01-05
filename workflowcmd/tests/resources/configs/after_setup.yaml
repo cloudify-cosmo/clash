@@ -3,4 +3,8 @@ name: after_setup
 
 setup:
 
+  args:
+    - name: arg1
+    - name: arg2
+
   after_setup: workflowcmd.tests.commands.test_setup:after_setup

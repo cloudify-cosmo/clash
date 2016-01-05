@@ -14,6 +14,8 @@
 # limitations under the License.
 ############
 
+import json
+
 import sh
 
 from workflowcmd import tests
@@ -38,10 +40,15 @@ class TestSetup(tests.BaseTest):
         self.assertEqual(self.inputs(config_path), {})
 
     def test_after_setup(self):
+        arg1 = 'arg1_value'
+        arg2 = 'arg2_value'
         config_path = 'after_setup.yaml'
-        self.dispatch(config_path, 'setup')
-        self.assertEqual((self.workdir / 'after_setup').text(),
-                         self.config(config_path)['name'])
+        self.dispatch(config_path, 'setup', arg1, arg2)
+        self.assertEqual(json.loads((self.workdir / 'after_setup').text()), {
+            'name': self.config(config_path)['name'],
+            'arg1': arg1,
+            'arg2': arg2
+        })
 
     def test_args_and_parse_parameters(self):
         config_path = 'setup_args.yaml'
@@ -81,6 +88,10 @@ class TestSetup(tests.BaseTest):
         self.assertEqual(self.storage_dir(config_path), storage_dir)
 
 
-def after_setup(loader):
+def after_setup(loader, arg1, arg2, **kwargs):
     with open('after_setup', 'w') as f:
-        f.write(loader.config['name'])
+        f.write(json.dumps({
+            'name': loader.config['name'],
+            'arg1': arg1,
+            'arg2': arg2
+        }))

@@ -150,7 +150,7 @@ class Loader(object):
             after_setup_func = setup.get('after_setup')
             if after_setup_func:
                 after_setup = module.load_attribute(after_setup_func)
-                after_setup(self)
+                after_setup(self, **vars(args))
 
         self._add_args_to_func(func, setup.get('args', []), skip_env=True)
         argh.arg('-s', '--storage-dir')(func)
