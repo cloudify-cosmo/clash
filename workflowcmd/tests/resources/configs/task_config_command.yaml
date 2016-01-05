@@ -1,0 +1,15 @@
+blueprint_path: ../blueprints/task_config/blueprint.yaml
+name: task_config_global
+
+commands:
+
+  command1:
+    args:
+      - name: output_path
+    workflow: workflow2
+    parameters:
+      output_path: { arg: output_path }
+    task:
+      retries: 3
+      retry_interval: 3
+      thread_pool_size: 3

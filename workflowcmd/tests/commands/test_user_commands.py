@@ -46,3 +46,29 @@ class TestUserCommands(tests.BaseTest):
         self.assertIn('from workflow1', output)
         assertion = self.assertIn if verbose else self.assertNotIn
         assertion("Starting 'workflow1'", output)
+
+    def test_task_config_default(self):
+        config_path = 'task_config_default.yaml'
+        counts = (0, 1, 1)
+        self._test_task_config(config_path, counts)
+
+    def test_task_config_global(self):
+        config_path = 'task_config_global.yaml'
+        counts = (4, 4, 4)
+        self._test_task_config(config_path, counts)
+
+    def test_task_config_command(self):
+        config_path = 'task_config_command.yaml'
+        counts = (3, 3, 3)
+        self._test_task_config(config_path, counts)
+
+    def _test_task_config(self, config_path, counts):
+        output_path = self.workdir / 'output.json'
+        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'init')
+        self.dispatch(config_path, 'command1', output_path)
+        self.assertEqual(json.loads(output_path.text()), {
+            'retries': counts[0],
+            'retry_interval': counts[1],
+            'thread_pool_size': counts[2]
+        })
