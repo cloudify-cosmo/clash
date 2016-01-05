@@ -116,7 +116,7 @@ class Loader(object):
                         task_retries=task_config['retries'],
                         task_retry_interval=task_config['retry_interval'],
                         task_thread_pool_size=task_config['thread_pool_size'])
-        self._add_args_to_func(func, command.get('args', []))
+        self._add_args_to_func(func, command.get('args', []), skip_env=False)
         return func
 
     def _load_env(self):
@@ -152,7 +152,7 @@ class Loader(object):
                 after_setup = module.load_attribute(after_setup_func)
                 after_setup(self)
 
-        self._add_args_to_func(func, setup.get('args', []))
+        self._add_args_to_func(func, setup.get('args', []), skip_env=True)
         argh.arg('-s', '--storage-dir')(func)
         argh.arg('-r', '--reset', default=False)(func)
         self._parser.add_commands(functions=[func])
@@ -179,13 +179,14 @@ class Loader(object):
         else:
             return yaml.safe_dump(outputs, default_flow_style=False)
 
-    def _add_args_to_func(self, func, args):
+    def _add_args_to_func(self, func, args, skip_env):
         for arg in reversed(args):
             name = arg.pop('name')
             completer = arg.pop('completer', None)
             if completer:
                 completer = module.load_attribute(completer)
-                completer = Completer(self._load_env, completer)
+                completer = Completer(None if skip_env else self._load_env,
+                                      completer)
                 arg['completer'] = completer
             name = name if isinstance(name, list) else [name]
             argh.arg(*name, **arg)(func)
@@ -241,5 +242,8 @@ class Completer(object):
         self.completer = completer
 
     def __call__(self, **kwargs):
-        env = self.env_loader()
-        return self.completer(env, **kwargs)
+        if self.env_loader:
+            env = self.env_loader()
+            return self.completer(env, **kwargs)
+        else:
+            return self.completer(**kwargs)
