@@ -27,7 +27,7 @@ from workflowcmd.tests import resources
 
 class TestLoader(tests.BaseTest):
 
-    relative_config_path = path('configs') / 'config1.yaml'
+    relative_config_path = path('configs') / 'plain.yaml'
     full_config_path = resources.DIR / relative_config_path
 
     def test_properties(self):

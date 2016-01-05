@@ -22,18 +22,18 @@ from workflowcmd import tests
 class TestSetup(tests.BaseTest):
 
     def test_implicit_storage_dir(self):
-        config_path = 'config2.yaml'
+        config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
         self.assertEqual(self.workdir, self.storage_dir(config_path))
 
     def test_explicit_storage_dir(self):
-        config_path = 'config2.yaml'
+        config_path = 'plain.yaml'
         storage_dir = self.workdir / 'storage'
         self.dispatch(config_path, 'setup', storage_dir=storage_dir)
         self.assertEqual(storage_dir, self.storage_dir(config_path))
 
     def test_no_inputs(self):
-        config_path = 'config2.yaml'
+        config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
         self.assertEqual(self.inputs(config_path), {})
 
@@ -62,7 +62,7 @@ class TestSetup(tests.BaseTest):
         })
 
     def test_storage_dir_already_configured_no_reset(self):
-        config_path = 'config2.yaml'
+        config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
         self.assertEqual(self.storage_dir(config_path), self.workdir)
         with self.assertRaises(sh.ErrorReturnCode) as c:
@@ -71,7 +71,7 @@ class TestSetup(tests.BaseTest):
         self.assertEqual(self.storage_dir(config_path), self.workdir)
 
     def test_storage_dir_already_configured_reset(self):
-        config_path = 'config2.yaml'
+        config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
         self.assertEqual(self.storage_dir(config_path), self.workdir)
         storage_dir = self.workdir / 'storage'

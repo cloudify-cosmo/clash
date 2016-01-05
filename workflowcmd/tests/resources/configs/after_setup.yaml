@@ -1,4 +1,4 @@
-blueprint_path: ../blueprints/blueprint2.yaml
+blueprint_path: ../blueprints/empty.yaml
 name: after_setup
 
 setup:
