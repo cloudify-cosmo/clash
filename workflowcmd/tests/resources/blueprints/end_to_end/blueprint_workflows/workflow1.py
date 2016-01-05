@@ -1,11 +1,13 @@
 import json
 
-from cloudify.workflows import parameters
+from cloudify.workflows import parameters, ctx
 
 output_path = parameters.output_path
 param1 = parameters.param1
 param2 = parameters.param2
 param3 = parameters.param3
+
+ctx.logger.info('from workflow1')
 
 with open(output_path, 'w') as f:
     f.write(json.dumps({

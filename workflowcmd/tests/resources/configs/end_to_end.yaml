@@ -1,9 +1,8 @@
 blueprint_path: ../blueprints/end_to_end/blueprint.yaml
 name: end_to_end_basic_command
 
-commands:
-
-  command1:
+templates:
+  - &command
     workflow: workflow1
     args:
       - name: arg1
@@ -16,3 +15,10 @@ commands:
       param2: { arg: arg2 }
       param3: { arg: arg3 }
       output_path: { arg: output_path }
+
+commands:
+
+  command1: *command
+
+  nested:
+    command2: *command
