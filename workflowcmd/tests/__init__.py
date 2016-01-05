@@ -24,6 +24,7 @@ import sh
 import yaml
 from path import path
 
+import workflowcmd
 from workflowcmd import dispatch
 from workflowcmd import config
 from workflowcmd.tests import resources
@@ -42,9 +43,16 @@ class BaseTest(unittest.TestCase):
         os.environ.pop(config.WORKFLOWCMD_CONF_PATH, None)
 
     def dispatch(self, config_path, *args, **kwargs):
+        # for tox
+        python_path = '{0}{1}{2}'.format(
+            path(workflowcmd.__file__).dirname().dirname(),
+            os.pathsep,
+            os.environ.get('PYTHONPATH', '.'))
+        env = os.environ.copy()
+        env['PYTHONPATH'] = python_path
         with self.workdir:
             try:
-                command = sh.Command(sys.executable).bake(__file__)
+                command = sh.Command(sys.executable).bake(__file__, _env=env)
                 command(config_path, *args, **kwargs)
             except sh.ErrorReturnCode as e:
                 print 'out: {0}\nerr: {1}\n'.format(e.stdout, e.stderr)
