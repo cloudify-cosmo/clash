@@ -14,4 +14,4 @@
 # limitations under the License.
 ############
 
-from workflowcmd.config import dispatch  # noqa
+from workflowcmd.loader import dispatch  # noqa
