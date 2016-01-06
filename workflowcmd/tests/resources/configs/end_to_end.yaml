@@ -1,5 +1,6 @@
 blueprint_path: ../blueprints/end_to_end/blueprint.yaml
 name: end_to_end_basic_command
+user_config_path: { env: USER_CONF_PATH }
 
 templates:
   - &command

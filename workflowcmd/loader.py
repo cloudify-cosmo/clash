@@ -36,9 +36,8 @@ class Loader(object):
 
     _name = '.local'
 
-    def __init__(self, package, config_path):
-        package_path = path(package.__file__).dirname()
-        config_path = package_path / config_path
+    def __init__(self, config_path):
+        config_path = path(config_path)
         config_dir = config_path.dirname()
         self.config = _json.loads(_json.dumps(yaml.safe_load(
             config_path.text())))
@@ -46,15 +45,11 @@ class Loader(object):
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
         self._parse_setup_command(setup=self.config.get('setup', {}))
-        storage_dir = config.read_workflowcmd_conf().get(
-            self.config['name'], {}).get('storage_dir')
-        if storage_dir:
-            self.storage_dir = path(storage_dir)
+        self.storage_dir = config.get_storage_dir(self.config)
+        if self.storage_dir:
             self._parse_commands(commands=self.config.get('commands', {}))
             self._parser.add_commands(functions=[self._init_command,
                                                  self._outputs_command])
-        else:
-            self.storage_dir = None
 
     def _parse_commands(self, commands, namespace=None):
         functions = []
@@ -116,8 +111,7 @@ class Loader(object):
             storage_dir = args.storage_dir or os.getcwd()
             self.storage_dir = path(storage_dir)
             self.storage_dir.mkdir_p()
-            config.update_workflowcmd_conf(
-                {self.config['name']: {'storage_dir': storage_dir}})
+            config.update_storage_dir(self.config, storage_dir)
             with open(self.blueprint_path) as f:
                 blueprint = yaml.safe_load(f) or {}
             inputs = {key: value.get('default', '_')
@@ -183,8 +177,8 @@ class Loader(object):
             sys.exit(errors_value)
 
 
-def dispatch(package, config_path):
-    loader = Loader(package=package, config_path=config_path)
+def dispatch(config_path):
+    loader = Loader(config_path=config_path)
     loader.dispatch()
 
 

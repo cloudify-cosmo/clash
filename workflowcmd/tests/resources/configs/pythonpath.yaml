@@ -1,5 +1,6 @@
 blueprint_path: ../blueprints/pythonpath/blueprint.yaml
 name: pythonpath
+user_config_path: { env: USER_CONF_PATH }
 
 commands:
 

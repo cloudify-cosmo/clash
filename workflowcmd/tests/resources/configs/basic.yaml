@@ -1,2 +1,3 @@
 blueprint_path: ../blueprints/basic.yaml
 name: basic
+user_config_path: { env: USER_CONF_PATH }

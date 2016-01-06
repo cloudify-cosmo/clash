@@ -20,9 +20,15 @@ from dsl_parser import functions as dsl_functions
 
 
 def parse_parameters(loader, parameters, args):
+
+    def env(func_args):
+        if not isinstance(func_args, list):
+            func_args = [func_args]
+        return os.environ.get(*func_args)
+
     functions = {
+        'env': env,
         'arg': lambda func_args: args[func_args],
-        'env': lambda func_args: os.environ[func_args],
         'loader': lambda func_args: getattr(loader, func_args)
     }
     for name, process in functions.items():

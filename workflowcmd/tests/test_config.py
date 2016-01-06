@@ -14,10 +14,7 @@
 # limitations under the License.
 ############
 
-import os
-
 import yaml
-from mock import patch
 
 from workflowcmd import config
 from workflowcmd import tests
@@ -25,40 +22,28 @@ from workflowcmd import tests
 
 class TestConfig(tests.BaseTest):
 
-    def test_default_workflowcmd_conf_path(self):
-        del os.environ[config.WORKFLOWCMD_CONF_PATH]
-        self.assertEqual(config.workflowcmd_conf_path(),
-                         os.path.expanduser('~/.workflowcmd'))
+    STORAGE_DIR = 'AAA'
 
-    def test_custom_workflowcmd_conf_path(self):
-        custom_path = '~/custom'
-        with patch.dict(os.environ,
-                        {config.WORKFLOWCMD_CONF_PATH: '~/custom'}):
-            self.assertEqual(config.workflowcmd_conf_path(),
-                             os.path.expanduser(custom_path))
+    def test_get_storage_dir_plain(self):
+        self.user_conf_path.write_text(yaml.safe_dump({
+            'storage_dir': self.STORAGE_DIR}))
+        self.assertEqual(config.get_storage_dir(
+            self._conf(self.user_conf_path)), self.STORAGE_DIR)
 
-    def test_read_workflowcmd_conf(self):
-        mock_data = {'some': 'mock_data'}
-        self.workflowcmd_conf_path.write_text(yaml.safe_dump(mock_data))
-        self.assertEqual(mock_data, config.read_workflowcmd_conf())
+    def test_get_storage_dir_env(self):
+        self.user_conf_path.write_text(yaml.safe_dump({
+            'storage_dir': self.STORAGE_DIR}))
+        self.assertEqual(config.get_storage_dir(
+            self._conf({'env': 'USER_CONF_PATH'})), self.STORAGE_DIR)
 
-    def test_read_workflowcmd_conf_not_exists(self):
-        self.assertFalse(self.workflowcmd_conf_path.exists())
-        self.assertEqual({}, config.read_workflowcmd_conf())
+    def test_get_storage_dir_none(self):
+        self.assertEqual(config.get_storage_dir(
+            self._conf(self.user_conf_path)), None)
 
-    def test_update_workflowcmd_conf_empty(self):
-        mock_data = {'some': 'other_mock_data'}
-        config.update_workflowcmd_conf(mock_data)
-        self.assertEqual(yaml.safe_load(self.workflowcmd_conf_path.text()),
-                         mock_data)
-        return mock_data
+    def test_update_storage_dir(self):
+        config.update_storage_dir(self._conf(self.user_conf_path),
+                                  self.STORAGE_DIR)
+        self.assertEqual(self.storage_dir(), self.STORAGE_DIR)
 
-    def test_update_workflowcmd_conf_not_empty(self):
-        current = self.test_update_workflowcmd_conf_empty()
-        new_mock_data = {'more': 'mocking data'}
-        new_mock_data_copy = new_mock_data.copy()
-        config.update_workflowcmd_conf(new_mock_data)
-        self.assertEqual(new_mock_data, new_mock_data_copy)
-        current.update(new_mock_data)
-        self.assertEqual(yaml.safe_load(self.workflowcmd_conf_path.text()),
-                         current)
+    def _conf(self, path):
+        return {'user_config_path': path}

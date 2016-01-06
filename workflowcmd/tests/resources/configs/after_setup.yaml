@@ -1,5 +1,6 @@
 blueprint_path: ../blueprints/empty.yaml
 name: after_setup
+user_config_path: { env: USER_CONF_PATH }
 
 setup:
 

@@ -14,29 +14,33 @@
 # limitations under the License.
 ############
 
-import os
-
 import yaml
+from path import path
 
-WORKFLOWCMD_CONF_PATH = 'WORKFLOWCMD_CONF_PATH'
-
-
-def workflowcmd_conf_path():
-    return os.path.expanduser(os.environ.get(WORKFLOWCMD_CONF_PATH,
-                                             '~/.workflowcmd'))
+from workflowcmd import functions
 
 
-def read_workflowcmd_conf():
-    conf_path = workflowcmd_conf_path()
-    if not os.path.exists(conf_path):
-        return {}
-    with open(conf_path) as f:
-        return yaml.safe_load(f) or {}
+def _get_user_config_path(config):
+    user_config_path = config['user_config_path']
+    if isinstance(user_config_path, dict):
+        user_config_path = functions.parse_parameters(
+            parameters={'holder': user_config_path},
+            loader=None,
+            args=None)['holder']
+    user_config_path = path(user_config_path).expanduser()
+    return user_config_path
 
 
-def update_workflowcmd_conf(conf):
-    current_conf = read_workflowcmd_conf()
-    current_conf.update(conf)
-    conf_path = workflowcmd_conf_path()
-    with open(conf_path, 'w') as f:
-        return yaml.safe_dump(current_conf, f)
+def get_storage_dir(config):
+    user_config_path = _get_user_config_path(config)
+    if not user_config_path.exists():
+        return None
+    user_config = yaml.safe_load(user_config_path.text())
+    return path(user_config['storage_dir'])
+
+
+def update_storage_dir(config, storage_dir):
+    user_config_path = _get_user_config_path(config)
+    user_config_path.write_text(yaml.safe_dump({
+        'storage_dir': storage_dir
+    }))

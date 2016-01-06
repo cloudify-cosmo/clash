@@ -26,18 +26,18 @@ class TestSetup(tests.BaseTest):
     def test_implicit_storage_dir(self):
         config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
-        self.assertEqual(self.workdir, self.storage_dir(config_path))
+        self.assertEqual(self.workdir, self.storage_dir())
 
     def test_explicit_storage_dir(self):
         config_path = 'plain.yaml'
         storage_dir = self.workdir / 'storage'
         self.dispatch(config_path, 'setup', storage_dir=storage_dir)
-        self.assertEqual(storage_dir, self.storage_dir(config_path))
+        self.assertEqual(storage_dir, self.storage_dir())
 
     def test_no_inputs(self):
         config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
-        self.assertEqual(self.inputs(config_path), {})
+        self.assertEqual(self.inputs(), {})
 
     def test_after_setup(self):
         arg1 = 'arg1_value'
@@ -55,13 +55,13 @@ class TestSetup(tests.BaseTest):
         arg1 = 'arg1_value'
         arg2 = 'arg2_value'
         self.dispatch(config_path, 'setup', arg1, arg2=arg2)
-        self.assertEqual(self.inputs(config_path),
+        self.assertEqual(self.inputs(),
                          {'arg1': arg1, 'arg2': arg2})
 
     def test_inputs(self):
         config_path = 'setup_inputs.yaml'
         self.dispatch(config_path, 'setup')
-        self.assertEqual(self.inputs(config_path), {
+        self.assertEqual(self.inputs(), {
             'input1': 'input1_default',
             'input2': 'input2_setup',
             'input3': '_',
@@ -71,21 +71,21 @@ class TestSetup(tests.BaseTest):
     def test_storage_dir_already_configured_no_reset(self):
         config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
-        self.assertEqual(self.storage_dir(config_path), self.workdir)
+        self.assertEqual(self.storage_dir(), self.workdir)
         with self.assertRaises(sh.ErrorReturnCode) as c:
             self.dispatch(config_path, 'setup')
         self.assertIn('already configured', c.exception.stderr)
-        self.assertEqual(self.storage_dir(config_path), self.workdir)
+        self.assertEqual(self.storage_dir(), self.workdir)
 
     def test_storage_dir_already_configured_reset(self):
         config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
-        self.assertEqual(self.storage_dir(config_path), self.workdir)
+        self.assertEqual(self.storage_dir(), self.workdir)
         storage_dir = self.workdir / 'storage'
         self.dispatch(config_path, 'setup',
                       storage_dir=storage_dir,
                       reset=True)
-        self.assertEqual(self.storage_dir(config_path), storage_dir)
+        self.assertEqual(self.storage_dir(), storage_dir)
 
 
 def after_setup(loader, arg1, arg2, **kwargs):

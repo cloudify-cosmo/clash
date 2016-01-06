@@ -129,7 +129,9 @@ def user_arg2_completer(env, *arg, **kwargs):
 
 
 def main():
-    workflowcmd.dispatch(resources, 'configs/{}'.format(CONFIG_PATH))
+    config_path = '{0}/configs/{1}'.format(os.path.dirname(resources.__file__),
+                                           CONFIG_PATH)
+    workflowcmd.dispatch(config_path)
 
 if __name__ == '__main__':
     main()

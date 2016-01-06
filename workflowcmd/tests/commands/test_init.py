@@ -26,11 +26,11 @@ class TestInit(tests.BaseTest):
     def test_basic(self, setup=True, reset=False, config_path='basic.yaml'):
         if setup:
             self.dispatch(config_path, 'setup')
-            inputs = self.inputs(config_path)
+            inputs = self.inputs()
             inputs['input'] = self.INPUT
-            self.set_inputs(config_path, inputs)
+            self.set_inputs(inputs)
         self.dispatch(config_path, 'init', reset=reset)
-        env = self.env(config_path)
+        env = self.env()
         instances = env.storage.get_node_instances()
         self.assertEqual(1, len(instances))
         self.assertEqual('node', instances[0].node_id)

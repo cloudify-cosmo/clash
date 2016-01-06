@@ -1,2 +1,3 @@
 blueprint_path: ../blueprints/outputs.yaml
 name: outputs
+user_config_path: { env: USER_CONF_PATH }

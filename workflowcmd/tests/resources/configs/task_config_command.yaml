@@ -1,5 +1,6 @@
 blueprint_path: ../blueprints/task_config/blueprint.yaml
 name: task_config_global
+user_config_path: { env: USER_CONF_PATH }
 
 commands:
 

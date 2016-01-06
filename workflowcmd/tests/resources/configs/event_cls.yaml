@@ -1,5 +1,6 @@
 blueprint_path: ../blueprints/event_cls/blueprint.yaml
 name: event_cls
+user_config_path: { env: USER_CONF_PATH }
 
 event_cls: event_cls_impls:Event1
 

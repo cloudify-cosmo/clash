@@ -1,5 +1,6 @@
 blueprint_path: ../blueprints/inputs.yaml
 name: setup_inputs
+user_config_path: { env: USER_CONF_PATH }
 
 setup:
 
