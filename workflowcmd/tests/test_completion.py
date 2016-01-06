@@ -61,12 +61,13 @@ class TestCompletion(tests.BaseTest):
     def test_user_command(self):
         base_options = ['-v', '--verbose'] + self.help_args
         user_options = ['--arg2']
-        completer_options = ['.local']
-        expected = base_options + user_options + completer_options
         self.dispatch(CONFIG_PATH, 'setup', 'arg')
         self.dispatch(CONFIG_PATH, 'init')
+        completer_options = ['.local', '1']
+        expected = base_options + user_options + completer_options
         self.assert_completion(expected=expected,
                                args=['command1'])
+        completer_options = ['.local', '2']
         self.assert_completion(expected=completer_options,
                                args=['command1', 'arg', '--arg2'])
 
@@ -121,11 +122,11 @@ def setup_arg2_completer(*arg, **kwargs):
 
 
 def user_arg1_completer(env, *arg, **kwarg):
-    return [env.name]
+    return [env.name, '1']
 
 
 def user_arg2_completer(env, *arg, **kwargs):
-    return [env.name]
+    return [env.name, '2']
 
 
 def main():
