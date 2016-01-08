@@ -42,6 +42,7 @@ class Loader(object):
         self.config = _json.loads(_json.dumps(yaml.safe_load(
             config_path.text())))
         self.blueprint_path = config_dir / self.config['blueprint_path']
+        self.blueprint_path = self.blueprint_path.abspath()
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
         self._parse_setup_command(setup=self.config.get('setup', {}))
@@ -112,6 +113,7 @@ class Loader(object):
             self.storage_dir = path(storage_dir)
             self.storage_dir.mkdir_p()
             config.update_storage_dir(self.config, storage_dir)
+            config.update_editable(self.config, args.editable)
             with open(self.blueprint_path) as f:
                 blueprint = yaml.safe_load(f) or {}
             inputs = {key: value.get('default', '_')
@@ -131,6 +133,7 @@ class Loader(object):
         self._add_args_to_func(func, setup.get('args', []), skip_env=True)
         argh.arg('-s', '--storage-dir')(func)
         argh.arg('-r', '--reset', default=False)(func)
+        argh.arg('-e', '--editable', default=False)(func)
         self._parser.add_commands(functions=[func])
 
     @argh.named('init')
@@ -150,6 +153,10 @@ class Loader(object):
                        name=self._name,
                        storage=self._storage(),
                        ignored_modules=self.config.get('ignored_modules', []))
+        if config.is_editable(self.config):
+            resources_path = self.storage_dir / self._name / 'resources'
+            shutil.rmtree(resources_path, ignore_errors=True)
+            os.symlink(self.blueprint_dir, resources_path)
 
     @argh.named('outputs')
     def _outputs_command(self, json=False):

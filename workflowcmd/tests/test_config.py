@@ -45,5 +45,17 @@ class TestConfig(tests.BaseTest):
                                   self.STORAGE_DIR)
         self.assertEqual(self.storage_dir(), self.STORAGE_DIR)
 
+    def test_is_editable(self):
+        self.user_conf_path.write_text(yaml.safe_dump({
+            'editable': True}))
+        self.assertTrue(config.is_editable(self._conf(self.user_conf_path)))
+
+    def test_is_editable_default(self):
+        self.assertFalse(config.is_editable(self._conf(self.user_conf_path)))
+
+    def test_update_editable(self):
+        config.update_editable(self._conf(self.user_conf_path), True)
+        self.assertTrue(config.is_editable(self._conf(self.user_conf_path)))
+
     def _conf(self, path):
         return {'user_config_path': path}

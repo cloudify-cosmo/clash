@@ -14,6 +14,8 @@
 # limitations under the License.
 ############
 
+from contextlib import contextmanager
+
 import yaml
 from path import path
 
@@ -31,16 +33,47 @@ def _get_user_config_path(config):
     return user_config_path
 
 
-def get_storage_dir(config):
+def _load_user_config(config):
     user_config_path = _get_user_config_path(config)
     if not user_config_path.exists():
+        return {}
+    return yaml.safe_load(user_config_path.text())
+
+
+def _update_user_config(config, user_config):
+    user_config_path = _get_user_config_path(config)
+    user_config_path.write_text(yaml.safe_dump(user_config))
+
+
+@contextmanager
+def _user_config(config):
+    user_config = _load_user_config(config)
+    yield user_config
+    _update_user_config(config, user_config)
+
+
+def get_storage_dir(config):
+    user_config = _load_user_config(config)
+    storage_dir = user_config.get('storage_dir')
+    if not storage_dir:
         return None
-    user_config = yaml.safe_load(user_config_path.text())
-    return path(user_config['storage_dir'])
+    return path(storage_dir)
 
 
 def update_storage_dir(config, storage_dir):
-    user_config_path = _get_user_config_path(config)
-    user_config_path.write_text(yaml.safe_dump({
-        'storage_dir': storage_dir
-    }))
+    with _user_config(config) as user_config:
+        user_config.update({
+            'storage_dir': storage_dir
+        })
+
+
+def is_editable(config):
+    user_config = _load_user_config(config)
+    return user_config.get('editable', False)
+
+
+def update_editable(config, editable):
+    with _user_config(config) as user_config:
+        user_config.update({
+            'editable': editable
+        })

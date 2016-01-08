@@ -14,18 +14,23 @@
 # limitations under the License.
 ############
 
+import errno
+import os
+
 import sh
 
 from workflowcmd import tests
+from workflowcmd.tests import resources
 
 
 class TestInit(tests.BaseTest):
 
     INPUT = 'INPUT_VALUE'
 
-    def test_basic(self, setup=True, reset=False, config_path='basic.yaml'):
+    def test_basic(self, setup=True, reset=False, config_path='basic.yaml',
+                   editable=False):
         if setup:
-            self.dispatch(config_path, 'setup')
+            self.dispatch(config_path, 'setup', editable=editable)
             inputs = self.inputs()
             inputs['input'] = self.INPUT
             self.set_inputs(inputs)
@@ -56,3 +61,21 @@ class TestInit(tests.BaseTest):
 
     def test_ignored_modules(self):
         self.test_basic(config_path='ignored_modules.yaml')
+
+    def test_editable_false(self):
+        self._test_editable(editable=False)
+
+    def test_editable_true(self):
+        self._test_editable(editable=True)
+
+    def _test_editable(self, editable):
+        resources_path = self.workdir / '.local' / 'resources'
+        self.test_basic(editable=editable)
+        self.assertTrue(resources_path.exists())
+        if editable:
+            expected = resources.DIR / 'blueprints'
+            self.assertEqual(os.readlink(resources_path), expected)
+        else:
+            with self.assertRaises(OSError) as c:
+                os.readlink(resources_path)
+            self.assertEqual(c.exception.errno, errno.EINVAL)

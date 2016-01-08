@@ -28,7 +28,7 @@ class TestLoader(tests.BaseTest):
         loader = _loader.Loader(config_path=full_config_path)
         config1 = yaml.safe_load(full_config_path.text())
         expected_blueprint_path = (full_config_path.dirname() /
-                                   config1['blueprint_path'])
+                                   config1['blueprint_path']).abspath()
         expected_blueprint_dir = expected_blueprint_path.dirname()
         self.assertEqual(loader.config, config1)
         self.assertEqual(loader.blueprint_path, expected_blueprint_path)

@@ -39,6 +39,16 @@ class TestSetup(tests.BaseTest):
         self.dispatch(config_path, 'setup')
         self.assertEqual(self.inputs(), {})
 
+    def test_editable_default(self):
+        config_path = 'plain.yaml'
+        self.dispatch(config_path, 'setup')
+        self.assertFalse(self.editable())
+
+    def test_editable_true(self):
+        config_path = 'plain.yaml'
+        self.dispatch(config_path, 'setup', editable=True)
+        self.assertTrue(self.editable())
+
     def test_after_setup(self):
         arg1 = 'arg1_value'
         arg2 = 'arg2_value'
@@ -76,6 +86,7 @@ class TestSetup(tests.BaseTest):
             self.dispatch(config_path, 'setup')
         self.assertIn('already configured', c.exception.stderr)
         self.assertEqual(self.storage_dir(), self.workdir)
+        self.assertFalse(self.editable())
 
     def test_storage_dir_already_configured_reset(self):
         config_path = 'plain.yaml'
@@ -86,6 +97,7 @@ class TestSetup(tests.BaseTest):
                       storage_dir=storage_dir,
                       reset=True)
         self.assertEqual(self.storage_dir(), storage_dir)
+        self.assertFalse(self.editable())
 
 
 def after_setup(loader, arg1, arg2, **kwargs):

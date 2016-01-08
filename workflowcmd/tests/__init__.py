@@ -73,6 +73,9 @@ class BaseTest(unittest.TestCase):
     def storage_dir(self):
         return path(self.user_conf()['storage_dir'])
 
+    def editable(self):
+        return self.user_conf()['editable']
+
     def inputs(self):
         storage_dir = self.storage_dir()
         return yaml.safe_load((storage_dir / 'inputs.yaml').text())
