@@ -136,8 +136,12 @@ class Loader(object):
     @argh.named('init')
     def _init_command(self, reset=False):
         local_dir = self.storage_dir / self._name
-        if local_dir.exists() and reset:
-            shutil.rmtree(local_dir)
+        if local_dir.exists():
+            if reset:
+                shutil.rmtree(local_dir)
+            else:
+                raise argh.CommandError('Already initialized, pass --reset '
+                                        'to re-initialize.')
         with open(self.storage_dir / 'inputs.yaml') as f:
             inputs = yaml.safe_load(f) or {}
         sys.path.append(self.blueprint_dir)
