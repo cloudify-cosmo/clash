@@ -26,9 +26,9 @@ from path import path
 
 from cloudify.workflows import local
 
-import workflowcmd
-from workflowcmd import dispatch
-from workflowcmd.tests import resources
+import clash
+from clash import dispatch
+from clash.tests import resources
 
 
 USER_CONF_PATH = 'USER_CONF_PATH'
@@ -37,7 +37,7 @@ USER_CONF_PATH = 'USER_CONF_PATH'
 class BaseTest(unittest.TestCase):
 
     def setUp(self):
-        self.workdir = path(tempfile.mkdtemp(prefix='workflowcmd-tests-'))
+        self.workdir = path(tempfile.mkdtemp(prefix='clash-tests-'))
         self.user_conf_path = self.workdir / 'user_conf'
         os.environ[USER_CONF_PATH] = self.user_conf_path
         self.addCleanup(self.cleanup)
@@ -49,7 +49,7 @@ class BaseTest(unittest.TestCase):
     def dispatch(self, config_path, *args, **kwargs):
         # for tox
         python_path = '{0}{1}{2}'.format(
-            path(workflowcmd.__file__).dirname().dirname(),
+            path(clash.__file__).dirname().dirname(),
             os.pathsep,
             os.environ.get('PYTHONPATH', '.'))
         env = os.environ.copy()

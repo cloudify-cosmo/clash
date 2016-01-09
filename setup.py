@@ -17,11 +17,11 @@
 from setuptools import setup
 
 setup(
-    name='workflowcmd',
+    name='clash',
     version='0.1',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
-    packages=['workflowcmd'],
+    packages=['clash'],
     description='Framework to wrap Cloudify local based blueprints as CLIs',
     license='Apache License, Version 2.0',
     zip_safe=False,

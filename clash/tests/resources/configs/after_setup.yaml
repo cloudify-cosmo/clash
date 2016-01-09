@@ -9,4 +9,4 @@ setup:
     - name: arg2
 
 hooks:
-  after_setup: workflowcmd.tests.commands.test_setup:after_setup
+  after_setup: clash.tests.commands.test_setup:after_setup

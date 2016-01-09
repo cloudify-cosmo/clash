@@ -19,7 +19,7 @@ from mock import patch
 
 from cloudify import logs
 
-from workflowcmd.output import Event, setup_output
+from clash.output import Event, setup_output
 
 STUB = object()
 

@@ -1,0 +1,21 @@
+blueprint_path: ../blueprints/completions.yaml
+name: completions
+user_config_path: { env: USER_CONF_PATH }
+
+setup:
+
+  args:
+    - name: arg1
+      completer: clash.tests.test_completion:setup_arg1_completer
+    - name: --arg2
+      completer: clash.tests.test_completion:setup_arg2_completer
+
+commands:
+
+  command1:
+    args:
+      - name: arg1
+        completer: clash.tests.test_completion:user_arg1_completer
+      - name: --arg2
+        completer: clash.tests.test_completion:user_arg2_completer
+    workflow: stub

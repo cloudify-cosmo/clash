@@ -19,8 +19,8 @@ import os
 
 import sh
 
-from workflowcmd import tests
-from workflowcmd.tests import resources
+from clash import tests
+from clash.tests import resources
 
 
 class TestInit(tests.BaseTest):

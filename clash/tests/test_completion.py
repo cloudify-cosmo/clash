@@ -19,9 +19,9 @@ import os
 
 import sh
 
-import workflowcmd
-from workflowcmd import tests
-from workflowcmd.tests import resources
+import clash
+from clash import tests
+from clash.tests import resources
 
 
 CONFIG_PATH = 'completions.yaml'
@@ -74,7 +74,7 @@ class TestCompletion(tests.BaseTest):
     def assert_completion(self, expected, args=None,
                           filter_non_options=False):
 
-        project_dir = os.path.dirname(os.path.dirname(workflowcmd.__file__))
+        project_dir = os.path.dirname(os.path.dirname(clash.__file__))
         this_file = os.path.basename(__file__)
         if this_file.endswith('.pyc'):
             this_file = this_file[:-1]
@@ -132,7 +132,7 @@ def user_arg2_completer(env, *arg, **kwargs):
 def main():
     config_path = '{0}/configs/{1}'.format(os.path.dirname(resources.__file__),
                                            CONFIG_PATH)
-    workflowcmd.dispatch(config_path)
+    clash.dispatch(config_path)
 
 if __name__ == '__main__':
     main()

@@ -19,7 +19,7 @@ from contextlib import contextmanager
 import yaml
 from path import path
 
-from workflowcmd import functions
+from clash import functions
 
 
 def _get_user_config_path(config):

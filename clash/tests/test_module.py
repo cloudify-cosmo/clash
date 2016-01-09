@@ -16,7 +16,7 @@
 
 import unittest
 
-from workflowcmd import module
+from clash import module
 
 TEST_ATTRIBUTE = object()
 

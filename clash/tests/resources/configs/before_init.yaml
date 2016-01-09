@@ -3,4 +3,4 @@ name: before_init
 user_config_path: { env: USER_CONF_PATH }
 
 hooks:
-  before_init: workflowcmd.tests.commands.test_init:before_init
+  before_init: clash.tests.commands.test_init:before_init

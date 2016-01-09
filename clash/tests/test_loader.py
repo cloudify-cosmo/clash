@@ -16,9 +16,9 @@
 
 import yaml
 
-from workflowcmd import loader as _loader
-from workflowcmd import tests
-from workflowcmd.tests import resources
+from clash import loader as _loader
+from clash import tests
+from clash.tests import resources
 
 
 class TestLoader(tests.BaseTest):

@@ -1,4 +1,4 @@
-from workflowcmd import output
+from clash import output
 
 
 class Event1(output.Event):

@@ -18,7 +18,7 @@ import json
 
 import sh
 
-from workflowcmd import tests
+from clash import tests
 
 
 class TestSetup(tests.BaseTest):

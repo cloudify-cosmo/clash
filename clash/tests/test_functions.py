@@ -18,10 +18,10 @@ import os
 
 from mock import patch
 
-from workflowcmd import functions
-from workflowcmd import loader as _loader
-from workflowcmd import tests
-from workflowcmd.tests import resources
+from clash import functions
+from clash import loader as _loader
+from clash import tests
+from clash.tests import resources
 
 
 class TestFunctions(tests.BaseTest):

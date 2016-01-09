@@ -14,22 +14,4 @@
 # limitations under the License.
 ############
 
-import json as _json
-
-from workflowcmd import tests
-
-
-class TestOutputs(tests.BaseTest):
-
-    def test_basic(self):
-        self.assertIn('output: output_value', self._test(json=False))
-
-    def test_json(self):
-        self.assertEqual({'output': 'output_value'},
-                         _json.loads(self._test(json=True)))
-
-    def _test(self, json):
-        config_path = 'outputs.yaml'
-        self.dispatch(config_path, 'setup')
-        self.dispatch(config_path, 'init')
-        return self.dispatch(config_path, 'outputs', json=json).stdout
+from clash.loader import dispatch  # noqa

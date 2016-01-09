@@ -16,8 +16,8 @@
 
 import yaml
 
-from workflowcmd import config
-from workflowcmd import tests
+from clash import config
+from clash import tests
 
 
 class TestConfig(tests.BaseTest):

@@ -27,10 +27,10 @@ from path import path
 
 from cloudify.workflows import local
 
-from workflowcmd import output
-from workflowcmd import functions
-from workflowcmd import module
-from workflowcmd import config
+from clash import output
+from clash import functions
+from clash import module
+from clash import config
 
 
 class Loader(object):

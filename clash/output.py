@@ -18,7 +18,7 @@ import colors
 
 from cloudify import logs
 
-from workflowcmd import module
+from clash import module
 
 _task_event_color = {
     'workflow_started': 13,

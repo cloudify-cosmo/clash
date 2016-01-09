@@ -18,7 +18,7 @@ import os
 import sys
 import json
 
-from workflowcmd import tests
+from clash import tests
 
 
 class TestUserCommands(tests.BaseTest):
