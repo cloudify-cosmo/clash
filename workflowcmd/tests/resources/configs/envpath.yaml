@@ -1,0 +1,8 @@
+blueprint_path: ../blueprints/envpath/blueprint.yaml
+name: envpath
+user_config_path: { env: USER_CONF_PATH }
+
+commands:
+
+  command1:
+    workflow: workflow3

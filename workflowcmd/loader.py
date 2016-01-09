@@ -67,6 +67,12 @@ class Loader(object):
         @argh.named(name)
         @argh.arg('-v', '--verbose', default=False)
         def func(args):
+            bin_dir = path(sys.executable).dirname()
+            current_path_env = os.environ.get('PATH', '')
+            if bin_dir not in current_path_env:
+                os.environ['PATH'] = '{}{}{}'.format(bin_dir,
+                                                     os.pathsep,
+                                                     current_path_env)
             parameters = functions.parse_parameters(
                 loader=self,
                 parameters=command.get('parameters', {}),

@@ -14,6 +14,8 @@
 # limitations under the License.
 ############
 
+import os
+import sys
 import json
 
 from workflowcmd import tests
@@ -79,6 +81,14 @@ class TestUserCommands(tests.BaseTest):
         self.dispatch(config_path, 'init')
         output = self.dispatch(config_path, 'command1').stdout
         self.assertIn('all good', output)
+
+    def test_env_path(self):
+        config_path = 'envpath.yaml'
+        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'init')
+        output = self.dispatch(config_path, 'command1').stdout
+        self.assertIn('all good', output)
+        self.assertIn(os.path.dirname(sys.executable), output)
 
     def test_event_cls(self):
         config_path = 'event_cls.yaml'

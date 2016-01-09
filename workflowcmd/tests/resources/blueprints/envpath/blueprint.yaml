@@ -1,0 +1,19 @@
+tosca_definitions_version: cloudify_dsl_1_2
+
+node_types:
+  type: {}
+
+node_templates:
+  node:
+    type: type
+    interfaces:
+      interface:
+        op: blueprint_operations/envpath.sh
+
+workflows:
+  workflow3: blueprint_workflows/workflow3.py
+
+plugins:
+  script:
+    executor: central_deployment_agent
+    install: false
