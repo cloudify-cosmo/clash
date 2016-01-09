@@ -17,6 +17,7 @@
 import sys
 import os
 import shutil
+import tempfile
 import json as _json
 import StringIO
 
@@ -125,7 +126,7 @@ class Loader(object):
             inputs_path = self.storage_dir / 'inputs.yaml'
             inputs_path.write_text(yaml.safe_dump(inputs,
                                                   default_flow_style=False))
-            after_setup_func = setup.get('after_setup')
+            after_setup_func = self.config.get('hooks', {}).get('after_setup')
             if after_setup_func:
                 after_setup = module.load_attribute(after_setup_func)
                 after_setup(self, **vars(args))
@@ -147,12 +148,29 @@ class Loader(object):
                                         'to re-initialize.')
         with open(self.storage_dir / 'inputs.yaml') as f:
             inputs = yaml.safe_load(f) or {}
-        sys.path.append(self.blueprint_dir)
-        local.init_env(blueprint_path=self.blueprint_path,
-                       inputs=inputs,
-                       name=self._name,
-                       storage=self._storage(),
-                       ignored_modules=self.config.get('ignored_modules', []))
+        temp_dir = path(tempfile.mkdtemp(
+            prefix='{}-blueprint-dir-'.format(self.config['name'])))
+        blueprint_dir = temp_dir / 'blueprint'
+        try:
+            shutil.copytree(self.blueprint_dir, blueprint_dir)
+            sys.path.append(blueprint_dir)
+            blueprint_path = blueprint_dir / self.blueprint_path.basename()
+            before_init_func = self.config.get('hooks', {}).get('before_init')
+            if before_init_func:
+                blueprint = yaml.safe_load(blueprint_path.text())
+                before_init = module.load_attribute(before_init_func)
+                before_init(blueprint=blueprint,
+                            inputs=inputs,
+                            loader=self)
+                blueprint_path.write_text(yaml.safe_dump(blueprint))
+            ignored_modules = self.config.get('ignored_modules', [])
+            local.init_env(blueprint_path=blueprint_path,
+                           inputs=inputs,
+                           name=self._name,
+                           storage=self._storage(),
+                           ignored_modules=ignored_modules)
+        finally:
+            shutil.rmtree(blueprint_dir, ignore_errors=True)
         if config.is_editable(self.config):
             resources_path = self.storage_dir / self._name / 'resources'
             shutil.rmtree(resources_path, ignore_errors=True)

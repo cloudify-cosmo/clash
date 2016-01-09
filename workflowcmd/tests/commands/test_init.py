@@ -62,6 +62,14 @@ class TestInit(tests.BaseTest):
     def test_ignored_modules(self):
         self.test_basic(config_path='ignored_modules.yaml')
 
+    def test_before_init(self):
+        config_path = 'before_init.yaml'
+        env = self.test_basic(config_path=config_path)
+        self.assertEqual(env.outputs(), {
+            'input': self.INPUT,
+            'from_before_init': self.config(config_path)['name']
+        })
+
     def test_editable_false(self):
         self._test_editable(editable=False)
 
@@ -79,3 +87,15 @@ class TestInit(tests.BaseTest):
             with self.assertRaises(OSError) as c:
                 os.readlink(resources_path)
             self.assertEqual(c.exception.errno, errno.EINVAL)
+
+
+def before_init(blueprint, inputs, loader, **kwargs):
+    blueprint['inputs'].update({
+        'from_before_init': {}
+    })
+    blueprint['outputs'].update({
+        'from_before_init': {
+            'value': {'get_input': 'from_before_init'}
+        }
+    })
+    inputs['from_before_init'] = loader.config['name']
