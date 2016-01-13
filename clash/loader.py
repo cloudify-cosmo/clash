@@ -50,8 +50,10 @@ class Loader(object):
         self.storage_dir = config.get_storage_dir(self.config)
         if self.storage_dir:
             self._parse_commands(commands=self.config.get('commands', {}))
+            self._parser.add_commands(functions=self._parse_env_subcommands(),
+                                      namespace='env')
             self._parser.add_commands(functions=[self._init_command,
-                                                 self._outputs_command])
+                                                 self._status_command])
 
     def _parse_commands(self, commands, namespace=None):
         functions = []
@@ -113,12 +115,14 @@ class Loader(object):
         @argh.expects_obj
         @argh.named('setup')
         def func(args):
-            if self.storage_dir and not args.reset:
+            if (config.get_current(self.config) == args.name and
+                    self.storage_dir and not args.reset):
                 raise argh.CommandError('storage dir already configured. pass '
                                         '--reset to override.')
             storage_dir = args.storage_dir or os.getcwd()
             self.storage_dir = path(storage_dir)
             self.storage_dir.mkdir_p()
+            config.set_current(self.config, args.name)
             config.update_storage_dir(self.config, storage_dir)
             config.update_editable(self.config, args.editable)
             with open(self.blueprint_path) as f:
@@ -141,6 +145,7 @@ class Loader(object):
         argh.arg('-s', '--storage-dir')(func)
         argh.arg('-r', '--reset', default=False)(func)
         argh.arg('-e', '--editable', default=False)(func)
+        argh.arg('-n', '--name', default='main')(func)
         self._parser.add_commands(functions=[func])
 
     @argh.named('init')
@@ -182,13 +187,51 @@ class Loader(object):
             shutil.rmtree(resources_path, ignore_errors=True)
             os.symlink(self.blueprint_dir, resources_path)
 
-    @argh.named('outputs')
-    def _outputs_command(self, json=False):
-        outputs = self._load_env().outputs()
+    def _parse_env_subcommands(self):
+        configuration_names = config.configuration_names(self.config)
+
+        def name_completer(prefix, *args, **kwargs):
+            return (n for n in configuration_names if n.startswith(prefix))
+
+        @argh.named('use')
+        def _use_command(name):
+            if name not in config.configuration_names(self.config):
+                raise argh.CommandError('No such configuration: {}'
+                                        .format(name))
+            config.set_current(self.config, name)
+        argh.arg('name', completer=name_completer)(_use_command)
+
+        @argh.named('remove')
+        def _remove_command(name):
+            if name not in config.configuration_names(self.config):
+                raise argh.CommandError('No such configuration: {}')
+            config.remove_configuration(self.config, name)
+        argh.arg('name', completer=name_completer)(_remove_command)
+
+        @argh.named('list')
+        def _list_command():
+            return '\n'.join(config.configuration_names(self.config))
+
+        return [_use_command, _remove_command, _list_command]
+
+    @argh.named('status')
+    def _status_command(self, json=False):
+        try:
+            outputs = self._load_env().outputs()
+        except Exception as e:
+            outputs = {'error': str(e)}
+        status = {
+            'env': {
+                'current': config.get_current(self.config),
+                'storage_dir': str(config.get_storage_dir(self.config)),
+                'editable': config.is_editable(self.config)
+            },
+            'outputs': outputs
+        }
         if json:
-            return _json.dumps(outputs, sort_keys=True, indent=2)
+            return _json.dumps(status, sort_keys=True, indent=2)
         else:
-            return yaml.safe_dump(outputs, default_flow_style=False)
+            return yaml.safe_dump(status, default_flow_style=False)
 
     def _add_args_to_func(self, func, args, skip_env):
         for arg in reversed(args):

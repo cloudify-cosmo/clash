@@ -70,22 +70,25 @@ class BaseTest(unittest.TestCase):
         with open(self.user_conf_path) as f:
             return yaml.safe_load(f)
 
-    def storage_dir(self):
-        return path(self.user_conf()['storage_dir'])
+    def current(self):
+        return self.user_conf()['current']
 
-    def editable(self):
-        return self.user_conf()['editable']
+    def storage_dir(self, name='main'):
+        return path(self.user_conf()['configurations'][name]['storage_dir'])
 
-    def inputs(self):
-        storage_dir = self.storage_dir()
+    def editable(self, name='main'):
+        return self.user_conf()['configurations'][name]['editable']
+
+    def inputs(self, name='main'):
+        storage_dir = self.storage_dir(name)
         return yaml.safe_load((storage_dir / 'inputs.yaml').text())
 
-    def set_inputs(self, inputs):
-        storage_dir = self.storage_dir()
+    def set_inputs(self, inputs, name='main'):
+        storage_dir = self.storage_dir(name)
         (storage_dir / 'inputs.yaml').write_text(yaml.safe_dump(inputs))
 
-    def env(self):
-        storage_dir = self.storage_dir()
+    def env(self, name='main'):
+        storage_dir = self.storage_dir(name)
         storage = local.FileStorage(storage_dir)
         return local.load_env('.local', storage)
 

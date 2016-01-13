@@ -19,17 +19,27 @@ import json as _json
 from clash import tests
 
 
-class TestOutputs(tests.BaseTest):
+class TestStatus(tests.BaseTest):
 
     def test_basic(self):
-        self.assertIn('output: output_value', self._test(json=False))
+        output = self._test(json=False)
+        self.assertIn('output: output_value', output)
+        self.assertIn('current: main', output)
 
     def test_json(self):
-        self.assertEqual({'output': 'output_value'},
-                         _json.loads(self._test(json=True)))
+        actual = _json.loads(self._test(json=True))
+        expected = {
+            'env': {
+                'current': 'main',
+                'storage_dir': str(self.storage_dir()),
+                'editable': self.editable()
+            },
+            'outputs': {'output': 'output_value'}
+        }
+        self.assertEqual(expected, actual)
 
     def _test(self, json):
         config_path = 'outputs.yaml'
         self.dispatch(config_path, 'setup')
         self.dispatch(config_path, 'init')
-        return self.dispatch(config_path, 'outputs', json=json).stdout
+        return self.dispatch(config_path, 'status', json=json).stdout

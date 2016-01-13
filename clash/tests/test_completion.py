@@ -36,7 +36,9 @@ class TestCompletion(tests.BaseTest):
 
     def test_setup(self):
         base_setup_options = ['-r', '--reset',
-                              '-s', '--storage-dir']
+                              '-s', '--storage-dir',
+                              '-e', '--editable',
+                              '-n', '--name']
         user_setup_options = ['--arg2']
         arg1_completer_options = setup_arg1_completer()
         expected = (base_setup_options + user_setup_options +
@@ -53,10 +55,23 @@ class TestCompletion(tests.BaseTest):
         self.assert_completion(expected=['-r', '--reset'] + self.help_args,
                                args=['init'])
 
-    def test_outputs(self):
+    def test_status(self):
         self.dispatch(CONFIG_PATH, 'setup', 'arg')
         self.assert_completion(expected=['-j', '--json'] + self.help_args,
-                               args=['outputs'])
+                               args=['status'])
+
+    def test_env(self):
+        self.dispatch(CONFIG_PATH, 'setup', 'arg')
+        self.assert_completion(expected=['use', 'remove', 'list'] +
+                               self.help_args,
+                               args=['env'])
+
+    def test_env_use_and_remove(self):
+        self.dispatch(CONFIG_PATH, 'setup', 'arg')
+        self.dispatch(CONFIG_PATH, 'setup', 'arg', name='second')
+        expected = ['main', 'second'] + self.help_args
+        self.assert_completion(expected=expected, args=['env', 'use'])
+        self.assert_completion(expected=expected, args=['env', 'remove'])
 
     def test_user_command(self):
         base_options = ['-v', '--verbose'] + self.help_args

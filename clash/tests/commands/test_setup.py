@@ -23,6 +23,16 @@ from clash import tests
 
 class TestSetup(tests.BaseTest):
 
+    def test_default_name(self):
+        config_path = 'plain.yaml'
+        self.dispatch(config_path, 'setup')
+        self.assertEqual(self.current(), 'main')
+
+    def test_explicit_name(self):
+        config_path = 'plain.yaml'
+        self.dispatch(config_path, 'setup', name='second')
+        self.assertEqual(self.current(), 'second')
+
     def test_implicit_storage_dir(self):
         config_path = 'plain.yaml'
         self.dispatch(config_path, 'setup')
@@ -98,6 +108,18 @@ class TestSetup(tests.BaseTest):
                       reset=True)
         self.assertEqual(self.storage_dir(), storage_dir)
         self.assertFalse(self.editable())
+
+    def test_storage_dir_already_configured_different_name_no_reset(self):
+        storage_dir2 = self.workdir / 's2'
+        config_path = 'plain.yaml'
+        self.dispatch(config_path, 'setup')
+        self.assertEqual(self.storage_dir(), self.workdir)
+        self.dispatch(config_path, 'setup', name='second',
+                      storage_dir=storage_dir2, editable=True)
+        self.assertEqual(self.storage_dir(), self.workdir)
+        self.assertFalse(self.editable())
+        self.assertEqual(self.storage_dir('second'), storage_dir2)
+        self.assertTrue(self.editable('second'))
 
 
 def after_setup(loader, arg1, arg2, **kwargs):
