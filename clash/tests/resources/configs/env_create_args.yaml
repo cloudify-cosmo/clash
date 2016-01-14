@@ -1,8 +1,8 @@
 blueprint_path: ../blueprints/empty.yaml
-name: setup_args
+name: env_create_args
 user_config_path: { env: USER_CONF_PATH }
 
-setup:
+env_create:
 
   args:
     - name: arg1

@@ -1,12 +1,12 @@
 blueprint_path: ../blueprints/empty.yaml
-name: after_setup
+name: after_env_create
 user_config_path: { env: USER_CONF_PATH }
 
-setup:
+env_create:
 
   args:
     - name: arg1
     - name: arg2
 
 hooks:
-  after_setup: clash.tests.commands.test_setup:after_setup
+  after_env_create: clash.tests.commands.test_env_create:after_env_create

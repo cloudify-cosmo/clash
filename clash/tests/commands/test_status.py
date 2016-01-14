@@ -40,6 +40,6 @@ class TestStatus(tests.BaseTest):
 
     def _test(self, json):
         config_path = 'outputs.yaml'
-        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         return self.dispatch(config_path, 'status', json=json).stdout

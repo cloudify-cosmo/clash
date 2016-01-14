@@ -26,12 +26,12 @@ class TestEnv(tests.BaseTest):
     def setUp(self):
         super(TestEnv, self).setUp()
         self.config_path = 'basic.yaml'
-        self.dispatch(self.config_path, 'setup',
+        self.dispatch(self.config_path, 'env', 'create',
                       name='main',
                       storage_dir=self.workdir / '1')
         self.set_inputs({'input': 'input1'}, name='main')
         self.dispatch(self.config_path, 'init')
-        self.dispatch(self.config_path, 'setup',
+        self.dispatch(self.config_path, 'env', 'create',
                       name='second',
                       storage_dir=self.workdir / '2')
         self.set_inputs({'input': 'input2'}, name='second')

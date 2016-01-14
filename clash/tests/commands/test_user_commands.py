@@ -35,7 +35,7 @@ class TestUserCommands(tests.BaseTest):
     def _test_command(self, verbose, command):
         config_path = 'end_to_end.yaml'
         output_path = self.workdir / 'output.json'
-        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         args = [config_path] + command + ['arg1_value']
         output = self.dispatch(*args, a='arg3_value', output_path=output_path,
@@ -66,7 +66,7 @@ class TestUserCommands(tests.BaseTest):
 
     def _test_task_config(self, config_path, counts):
         output_path = self.workdir / 'output.json'
-        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         self.dispatch(config_path, 'command1', output_path)
         self.assertEqual(json.loads(output_path.text()), {
@@ -77,14 +77,14 @@ class TestUserCommands(tests.BaseTest):
 
     def test_update_python_path(self):
         config_path = 'pythonpath.yaml'
-        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         output = self.dispatch(config_path, 'command1').stdout
         self.assertIn('all good', output)
 
     def test_env_path(self):
         config_path = 'envpath.yaml'
-        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         output = self.dispatch(config_path, 'command1').stdout
         self.assertIn('all good', output)
@@ -92,7 +92,7 @@ class TestUserCommands(tests.BaseTest):
 
     def test_event_cls(self):
         config_path = 'event_cls.yaml'
-        self.dispatch(config_path, 'setup')
+        self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         output1 = self.dispatch(config_path, 'command1').stdout
         output2 = self.dispatch(config_path, 'command2').stdout

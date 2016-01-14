@@ -46,7 +46,8 @@ class Loader(object):
         self.blueprint_path = self.blueprint_path.abspath()
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
-        self._parse_setup_command(setup=self.config.get('setup', {}))
+        self._parse_env_create_command(env_create=self.config.get(
+            'env_create', {}))
         self.storage_dir = config.get_storage_dir(self.config)
         if self.storage_dir:
             self._parse_commands(commands=self.config.get('commands', {}))
@@ -111,9 +112,9 @@ class Loader(object):
     def _storage(self):
         return local.FileStorage(storage_dir=self.storage_dir)
 
-    def _parse_setup_command(self, setup):
+    def _parse_env_create_command(self, env_create):
         @argh.expects_obj
-        @argh.named('setup')
+        @argh.named('create')
         def func(args):
             if (config.get_current(self.config) == args.name and
                     self.storage_dir and not args.reset):
@@ -131,22 +132,23 @@ class Loader(object):
                       for key, value in blueprint.get('inputs', {}).items()}
             inputs.update(functions.parse_parameters(
                 loader=self,
-                parameters=setup.get('inputs', {}),
+                parameters=env_create.get('inputs', {}),
                 args=vars(args)))
             inputs_path = self.storage_dir / 'inputs.yaml'
             inputs_path.write_text(yaml.safe_dump(inputs,
                                                   default_flow_style=False))
-            after_setup_func = self.config.get('hooks', {}).get('after_setup')
-            if after_setup_func:
-                after_setup = module.load_attribute(after_setup_func)
-                after_setup(self, **vars(args))
+            after_env_create_func = self.config.get('hooks', {}).get(
+                'after_env_create')
+            if after_env_create_func:
+                after_env_create = module.load_attribute(after_env_create_func)
+                after_env_create(self, **vars(args))
 
-        self._add_args_to_func(func, setup.get('args', []), skip_env=True)
+        self._add_args_to_func(func, env_create.get('args', []), skip_env=True)
         argh.arg('-s', '--storage-dir')(func)
         argh.arg('-r', '--reset', default=False)(func)
         argh.arg('-e', '--editable', default=False)(func)
         argh.arg('-n', '--name', default='main')(func)
-        self._parser.add_commands(functions=[func])
+        self._parser.add_commands(functions=[func], namespace='env')
 
     @argh.named('init')
     def _init_command(self, reset=False):

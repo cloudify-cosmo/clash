@@ -1,9 +1,9 @@
 blueprint_path: ../blueprints/inputs.yaml
-name: setup_inputs
+name: env_create_inputs
 user_config_path: { env: USER_CONF_PATH }
 
-setup:
+env_create:
 
   inputs:
-    input2: input2_setup
-    input4: input4_setup
+    input2: input2_env_create
+    input4: input4_env_create

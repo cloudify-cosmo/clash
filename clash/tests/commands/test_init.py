@@ -27,10 +27,13 @@ class TestInit(tests.BaseTest):
 
     INPUT = 'INPUT_VALUE'
 
-    def test_basic(self, setup=True, reset=False, config_path='basic.yaml',
+    def test_basic(self,
+                   env_create=True,
+                   reset=False,
+                   config_path='basic.yaml',
                    editable=False):
-        if setup:
-            self.dispatch(config_path, 'setup', editable=editable)
+        if env_create:
+            self.dispatch(config_path, 'env', 'create', editable=editable)
             inputs = self.inputs()
             inputs['input'] = self.INPUT
             self.set_inputs(inputs)
@@ -44,11 +47,11 @@ class TestInit(tests.BaseTest):
     def test_already_initialized_no_reset(self):
         self.test_basic()
         with self.assertRaises(sh.ErrorReturnCode):
-            self.test_basic(setup=False, reset=False)
+            self.test_basic(env_create=False, reset=False)
 
     def test_already_initialized_reset(self):
         self.test_basic()
-        self.test_basic(setup=False, reset=True)
+        self.test_basic(env_create=False, reset=True)
 
     def test_inputs(self):
         env = self.test_basic()
