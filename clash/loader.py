@@ -46,15 +46,16 @@ class Loader(object):
         self.blueprint_path = self.blueprint_path.abspath()
         self.blueprint_dir = self.blueprint_path.dirname()
         self._parser = argh.ArghParser()
-        self._parse_env_create_command(env_create=self.config.get(
-            'env_create', {}))
+        env_commands = [
+            self._parse_env_create_command(env_create=self.config.get(
+                    'env_create', {}))]
         self.storage_dir = config.get_storage_dir(self.config)
         if self.storage_dir:
             self._parse_commands(commands=self.config.get('commands', {}))
-            self._parser.add_commands(functions=self._parse_env_subcommands(),
-                                      namespace='env')
+            env_commands += self._parse_env_subcommands()
             self._parser.add_commands(functions=[self._init_command,
                                                  self._status_command])
+        self._parser.add_commands(functions=env_commands, namespace='env')
 
     def _parse_commands(self, commands, namespace=None):
         functions = []
@@ -142,13 +143,12 @@ class Loader(object):
             if after_env_create_func:
                 after_env_create = module.load_attribute(after_env_create_func)
                 after_env_create(self, **vars(args))
-
         self._add_args_to_func(func, env_create.get('args', []), skip_env=True)
         argh.arg('-s', '--storage-dir')(func)
         argh.arg('-r', '--reset', default=False)(func)
         argh.arg('-e', '--editable', default=False)(func)
         argh.arg('-n', '--name', default='main')(func)
-        self._parser.add_commands(functions=[func], namespace='env')
+        return func
 
     @argh.named('init')
     def _init_command(self, reset=False):
