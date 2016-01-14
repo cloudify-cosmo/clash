@@ -188,7 +188,7 @@ class Loader(object):
                            storage=self._storage(),
                            ignored_modules=ignored_modules)
         finally:
-            shutil.rmtree(blueprint_dir, ignore_errors=True)
+            shutil.rmtree(temp_dir, ignore_errors=True)
         if config.is_editable(self.config):
             resources_path = self.storage_dir / self._name / 'resources'
             shutil.rmtree(resources_path, ignore_errors=True)
