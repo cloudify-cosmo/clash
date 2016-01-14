@@ -14,6 +14,7 @@
 # limitations under the License.
 ############
 
+import argparse
 import sys
 import os
 import shutil
@@ -45,16 +46,18 @@ class Loader(object):
         self.blueprint_path = config_dir / self.config['blueprint_path']
         self.blueprint_path = self.blueprint_path.abspath()
         self.blueprint_dir = self.blueprint_path.dirname()
+        self.user_commands = {}
         self._parser = argh.ArghParser()
         env_commands = [
             self._parse_env_create_command(env_create=self.config.get(
                     'env_create', {}))]
         self.storage_dir = config.get_storage_dir(self.config)
         if self.storage_dir:
-            self._parse_commands(commands=self.config.get('commands', {}))
             env_commands += self._parse_env_subcommands()
+            self._parse_commands(commands=self.config.get('commands', {}))
             self._parser.add_commands(functions=[self._init_command,
-                                                 self._status_command])
+                                                 self._status_command,
+                                                 self._apply_command])
         self._parser.add_commands(functions=env_commands, namespace='env')
 
     def _parse_commands(self, commands, namespace=None):
@@ -64,6 +67,8 @@ class Loader(object):
                 self._parse_commands(commands=command, namespace=name)
                 continue
             functions.append(self._parse_command(name=name, command=command))
+        for function in functions:
+            self.user_commands[function.argh_name] = function
         self._parser.add_commands(functions=functions, namespace=namespace)
 
     def _parse_command(self, name, command):
@@ -234,6 +239,14 @@ class Loader(object):
             return _json.dumps(status, sort_keys=True, indent=2)
         else:
             return yaml.safe_dump(status, default_flow_style=False)
+
+    @argh.named('apply')
+    def _apply_command(self, verbose=False):
+        self._init_command(reset=True)
+        user_command = self.config.get('command_after_init_on_apply')
+        if user_command:
+            user_command_func = self.user_commands[user_command]
+            user_command_func(argparse.Namespace(verbose=verbose))
 
     def _add_args_to_func(self, func, args, skip_env):
         for arg in reversed(args):

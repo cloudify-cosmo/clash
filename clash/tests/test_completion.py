@@ -34,6 +34,11 @@ class TestCompletion(tests.BaseTest):
     def test_basic(self):
         self.assert_completion(expected=['env'] + self.help_args)
 
+    def test_basic_after_initial_create(self):
+        self.dispatch(CONFIG_PATH, 'env', 'create', 'arg1')
+        self.assert_completion(expected=['env', 'apply', 'init', 'status',
+                                         'command1'] + self.help_args)
+
     def test_env_create(self):
         base_env_create_options = ['-r', '--reset',
                                    '-s', '--storage-dir',
@@ -54,6 +59,11 @@ class TestCompletion(tests.BaseTest):
         self.dispatch(CONFIG_PATH, 'env', 'create', 'arg')
         self.assert_completion(expected=['-r', '--reset'] + self.help_args,
                                args=['init'])
+
+    def test_apply(self):
+        self.dispatch(CONFIG_PATH, 'env', 'create', 'arg')
+        self.assert_completion(expected=['-v', '--verbose'] + self.help_args,
+                               args=['apply'])
 
     def test_status(self):
         self.dispatch(CONFIG_PATH, 'env', 'create', 'arg')
