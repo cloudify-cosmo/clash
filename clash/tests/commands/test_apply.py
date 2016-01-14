@@ -24,7 +24,13 @@ from clash import tests
 
 class TestApply(tests.BaseTest):
 
-    def test_apply(self):
+    def test_basic(self):
+        self._test(verbose=False)
+
+    def test_verbose(self):
+        self._test(verbose=True)
+
+    def _test(self, verbose):
         config_path = 'apply.yaml'
         output_path = self.workdir / 'output.json'
         expected = {
@@ -32,12 +38,21 @@ class TestApply(tests.BaseTest):
             'param2': 'param2_value',
             'param3': 'param3_value'
         }
+
+        def assert_output(out):
+            assertion = self.assertIn if verbose else self.assertNotIn
+            assertion('workflow execution succeeded', out)
+
         with patch.dict(os.environ, {'test_output_path': output_path}):
             self.assertFalse(output_path.exists())
             self.dispatch(config_path, 'env', 'create')
-            self.dispatch(config_path, 'apply')
+            output = self.dispatch(config_path, 'apply',
+                                   verbose=verbose).stdout.strip()
+            assert_output(output)
             self.assertEqual(expected, json.loads(output_path.text()))
             output_path.remove()
             self.assertFalse(output_path.exists())
-            self.dispatch(config_path, 'apply')
+            output = self.dispatch(config_path, 'apply',
+                                   verbose=verbose).stdout.strip()
+            assert_output(output)
             self.assertEqual(expected, json.loads(output_path.text()))
