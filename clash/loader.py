@@ -132,17 +132,7 @@ class Loader(object):
             config.set_current(self.config, args.name)
             config.update_storage_dir(self.config, storage_dir)
             config.update_editable(self.config, args.editable)
-            with open(self.blueprint_path) as f:
-                blueprint = yaml.safe_load(f) or {}
-            inputs = {key: value.get('default', '_')
-                      for key, value in blueprint.get('inputs', {}).items()}
-            inputs.update(functions.parse_parameters(
-                loader=self,
-                parameters=env_create.get('inputs', {}),
-                args=vars(args)))
-            inputs_path = self.storage_dir / 'inputs.yaml'
-            inputs_path.write_text(yaml.safe_dump(inputs,
-                                                  default_flow_style=False))
+            self._create_inputs(args, env_create.get('inputs', {}))
             after_env_create_func = self.config.get('hooks', {}).get(
                 'after_env_create')
             if after_env_create_func:
@@ -154,6 +144,57 @@ class Loader(object):
         argh.arg('-e', '--editable', default=False)(func)
         argh.arg('-n', '--name', default='main')(func)
         return func
+
+    def _create_inputs(self, args, env_create_inputs):
+        inputs = {}
+        inputs_path = self.storage_dir / 'inputs.yaml'
+
+        with open(self.blueprint_path) as f:
+            blueprint = yaml.safe_load(f) or {}
+        blueprint_inputs = blueprint.get('inputs', {})
+        blueprint_inputs_defaults = {
+            key: value.get('default', '_')
+            for key, value in blueprint_inputs.items()}
+
+        env_create_inputs = functions.parse_parameters(
+            loader=self,
+            parameters=env_create_inputs,
+            args=vars(args))
+
+        inputs.update(blueprint_inputs_defaults)
+        inputs.update(env_create_inputs)
+
+        inputs_path.write_text(
+            yaml.safe_dump(inputs, default_flow_style=False))
+
+        inputs_lines = inputs_path.lines()
+        new_input_lines = []
+
+        first_line = True
+
+        blueprint_description = blueprint.get('description', '').strip()
+        if blueprint_description:
+            blueprint_description = blueprint_description.replace('\n',
+                                                                  '\n# ')
+            new_input_lines.append('# {}\n'.format(blueprint_description))
+            new_input_lines.append('\n')
+            first_line = False
+
+        for line in inputs_lines:
+            possible_key = line.split(':')[0]
+            if possible_key in inputs:
+                if not first_line:
+                    new_input_lines.append('\n')
+                key = possible_key
+                description = blueprint_inputs.get(key, {}).get(
+                    'description', '').strip()
+                if description:
+                    description = description.replace('\n', '\n# ')
+                    new_input_lines.append('# {}'.format(description))
+            new_input_lines.append(line)
+            first_line = False
+
+        inputs_path.write_lines(new_input_lines)
 
     @argh.named('init')
     def _init_command(self, reset=False):

@@ -1,7 +1,11 @@
+description: This is the description for the blueprint
+
 inputs:
 
   input1:
+    description: This is the description for input1
     default: input1_default
   input2:
+    description: This is the description for input2
     default: input2_default
   input3: {}

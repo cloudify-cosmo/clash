@@ -87,6 +87,14 @@ class TestEnvCreate(tests.BaseTest):
             'input3': '_',
             'input4': 'input4_env_create'
         })
+        inputs_path = self.storage_dir() / 'inputs.yaml'
+        inputs_text = inputs_path.text()
+        self.assertTrue(inputs_text.startswith(
+            '# This is the description for the blueprint'))
+        self.assertIn('# This is the description for input1\ninput1:',
+                      inputs_text)
+        self.assertIn('# This is the description for input2\ninput2:',
+                      inputs_text)
 
     def test_storage_dir_already_configured_no_reset(self):
         config_path = 'plain.yaml'
