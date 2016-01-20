@@ -100,4 +100,5 @@ class TestUserCommands(tests.BaseTest):
                                 verbose=True).stdout
         self.assertIn('EVENT1', output1)
         self.assertIn('EVENT2', output2)
-        self.assertIn('EVENT3 env: .local, verbose: True', output3)
+        self.assertIn('EVENT3 env: .local, verbose: True, '
+                      'workflow: workflow4', output3)
