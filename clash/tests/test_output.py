@@ -31,32 +31,39 @@ class TestSetupOutput(unittest.TestCase):
     def test_no_event_cls(self):
         setup_output(event_cls=None,
                      verbose=False,
-                     env=None)
+                     env=None,
+                     command={})
         self.assertIs(logs.EVENT_CLASS, Event)
 
     def test_event_cls(self):
         setup_output(event_cls='{}:MockEvent'.format(__name__),
                      verbose=False,
-                     env=None)
+                     env=None,
+                     command={})
         self.assertIs(logs.EVENT_CLASS, MockEvent)
 
     def test_event_cls_factory(self):
+        command = {'hello': 'world'}
         setup_output(event_cls='{}:MockEventFactory'.format(__name__),
                      verbose=True,
-                     env=STUB)
+                     env=STUB,
+                     command=command)
         self.assertTrue(logs.EVENT_CLASS.r_verbose)
         self.assertIs(logs.EVENT_CLASS.r_env, STUB)
+        self.assertEqual(logs.EVENT_CLASS.r_command, command)
 
     def test_verbose(self):
         setup_output(event_cls=None,
                      verbose=True,
-                     env=None)
+                     env=None,
+                     command={})
         self.assertIs(logs.stdout_event_out, STUB)
 
     def test_none_verbose(self):
         setup_output(event_cls=None,
                      verbose=False,
-                     env=None)
+                     env=None,
+                     command={})
         self.assertIsNot(logs.stdout_event_out, STUB)
 
 
@@ -67,8 +74,9 @@ class MockEvent(object):
 class MockEventFactory(object):
 
     @staticmethod
-    def factory(env, verbose):
+    def factory(env, verbose, command):
         class Result(object):
             r_env = env
             r_verbose = verbose
+            r_command = command
         return Result

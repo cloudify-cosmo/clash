@@ -184,13 +184,15 @@ class Event(dict):
         return self.context.get('task_total_retries')
 
 
-def setup_output(event_cls, verbose, env):
+def setup_output(event_cls, verbose, env, command):
     if event_cls is None:
         event_cls = Event
     else:
         event_cls = module.load_attribute(event_cls)
         if hasattr(event_cls, 'factory'):
-            event_cls = event_cls.factory(env=env, verbose=verbose)
+            event_cls = event_cls.factory(env=env,
+                                          verbose=verbose,
+                                          command=command)
     logs.EVENT_CLASS = event_cls
 
     if not verbose:

@@ -102,7 +102,8 @@ class Loader(object):
                                     self.config.get('event_cls'))
             output.setup_output(event_cls=event_cls,
                                 verbose=args.verbose,
-                                env=env)
+                                env=env,
+                                command=command)
 
             env.execute(workflow=command['workflow'],
                         parameters=parameters,
