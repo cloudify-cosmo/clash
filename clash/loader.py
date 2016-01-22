@@ -68,7 +68,10 @@ class Loader(object):
                 continue
             functions.append(self._parse_command(name=name, command=command))
         for function in functions:
-            self.user_commands[function.argh_name] = function
+            name = function.argh_name
+            if namespace:
+                name = '{}.{}'.format(namespace, name)
+            self.user_commands[name] = function
         self._parser.add_commands(functions=functions, namespace=namespace)
 
     def _parse_command(self, name, command):

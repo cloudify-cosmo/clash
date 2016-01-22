@@ -30,8 +30,10 @@ class TestApply(tests.BaseTest):
     def test_verbose(self):
         self._test(verbose=True)
 
-    def _test(self, verbose):
-        config_path = 'apply.yaml'
+    def test_nested(self):
+        self._test(config_path='apply_nested.yaml')
+
+    def _test(self, verbose=False, config_path='apply.yaml'):
         output_path = self.workdir / 'output.json'
         expected = {
             'param1': 'param1_value',

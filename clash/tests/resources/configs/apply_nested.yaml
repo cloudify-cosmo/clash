@@ -1,0 +1,15 @@
+blueprint_path: ../blueprints/end_to_end/blueprint.yaml
+name: apply_nested
+user_config_path: { env: USER_CONF_PATH }
+
+command_after_init_on_apply: nested.command1
+
+commands:
+  nested:
+    command1:
+      workflow: workflow1
+      parameters:
+        param1: param1_value
+        param2: param2_value
+        param3: param3_value
+        output_path: { env: test_output_path }
