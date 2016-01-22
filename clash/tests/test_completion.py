@@ -16,8 +16,10 @@
 ############
 
 import os
+import copy
 
 import sh
+import yaml
 
 import clash
 from clash import tests
@@ -95,6 +97,29 @@ class TestCompletion(tests.BaseTest):
         completer_options = ['.local', '2']
         self.assert_completion(expected=completer_options,
                                args=['command1', 'arg', '--arg2'])
+
+    def test_macros(self):
+        self.dispatch(CONFIG_PATH, 'env', 'create', 'arg')
+        self.dispatch(CONFIG_PATH, 'init')
+        macros_path = self.workdir / 'macros.yaml'
+        macro = {
+            'args': [
+                {'name': '--arg'}
+            ],
+            'commands': []
+        }
+        macros_path.write_text(yaml.safe_dump({
+            'macro1': copy.deepcopy(macro),
+            'nested': {
+                'macro2': copy.deepcopy(macro)
+            }
+        }))
+        user_options = ['--arg']
+        expected = self.help_args + user_options
+        self.assert_completion(expected=expected,
+                               args=['macro1'])
+        self.assert_completion(expected=expected,
+                               args=['nested', 'macro2'])
 
     def assert_completion(self, expected, args=None,
                           filter_non_options=False):

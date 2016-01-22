@@ -9,6 +9,9 @@ param3 = parameters.param3
 
 ctx.logger.info('from workflow1')
 
+if output_path == 'fail':
+    raise RuntimeError('EXPECTED')
+
 with open(output_path, 'w') as f:
     f.write(json.dumps({
         'param1': param1,

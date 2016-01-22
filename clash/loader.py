@@ -21,6 +21,7 @@ import shutil
 import tempfile
 import json as _json
 import StringIO
+import copy
 
 import yaml
 import argh
@@ -52,19 +53,28 @@ class Loader(object):
             self._parse_env_create_command(env_create=self.config.get(
                     'env_create', {}))]
         self.storage_dir = config.get_storage_dir(self.config)
+        self.inputs_path = None
+        self.macros_path = None
         if self.storage_dir:
+            self._set_paths()
+            if self.macros_path.exists():
+                macros = yaml.safe_load(self.macros_path.text()) or {}
+            else:
+                macros = {}
             env_commands += self._parse_env_subcommands()
-            self._parse_commands(commands=self.config.get('commands', {}))
+            self._parse_commands(commands=self.config.get('commands', {}),
+                                 macros=macros)
             self._parser.add_commands(functions=[self._init_command,
                                                  self._status_command,
                                                  self._apply_command])
         self._parser.add_commands(functions=env_commands, namespace='env')
 
-    def _parse_commands(self, commands, namespace=None):
+    def _parse_commands(self, commands, macros, namespace=None):
         functions = []
         for name, command in commands.items():
             if 'workflow' not in command:
-                self._parse_commands(commands=command, namespace=name)
+                self._parse_commands(commands=command, namespace=name,
+                                     macros=macros.get(name, {}))
                 continue
             functions.append(self._parse_command(name=name, command=command))
         for function in functions:
@@ -72,6 +82,15 @@ class Loader(object):
             if namespace:
                 name = '{}.{}'.format(namespace, name)
             self.user_commands[name] = function
+        for name, macro in macros.items():
+            if 'commands' not in macro:
+                if name in commands:
+                    # namespace already handled by existing commands namespace
+                    continue
+                self._parse_commands(commands={}, namespace=name,
+                                     macros=macro)
+                continue
+            functions.append(self._parse_macro(name=name, macro=macro))
         self._parser.add_commands(functions=functions, namespace=namespace)
 
     def _parse_command(self, name, command):
@@ -87,7 +106,7 @@ class Loader(object):
                                                      current_path_env)
             parameters = functions.parse_parameters(
                 loader=self,
-                parameters=command.get('parameters', {}),
+                parameters=copy.deepcopy(command.get('parameters', {})),
                 args=vars(args))
             task_config = {
                 'retries': 0,
@@ -116,6 +135,25 @@ class Loader(object):
         self._add_args_to_func(func, command.get('args', []), skip_env=False)
         return func
 
+    def _parse_macro(self, name, macro):
+        @argh.expects_obj
+        @argh.named(name)
+        def func(args):
+            args = vars(args)
+            for user_command in macro['commands']:
+                user_command_name = user_command['name']
+                user_command_args = functions.parse_parameters(
+                    loader=self,
+                    parameters=user_command.get('args', []),
+                    args=args)
+                print '==> {0}: {1}'.format(user_command_name,
+                                            user_command_args)
+                user_command_func = self.user_commands[user_command_name]
+                argh.dispatch_command(user_command_func,
+                                      argv=user_command_args)
+        self._add_args_to_func(func, macro.get('args', []), skip_env=True)
+        return func
+
     def _load_env(self):
         return local.load_env(name=self._name, storage=self._storage())
 
@@ -133,10 +171,12 @@ class Loader(object):
             storage_dir = args.storage_dir or os.getcwd()
             self.storage_dir = path(storage_dir)
             self.storage_dir.mkdir_p()
+            self._set_paths()
             config.set_current(self.config, args.name)
             config.update_storage_dir(self.config, storage_dir)
             config.update_editable(self.config, args.editable)
             self._create_inputs(args, env_create.get('inputs', {}))
+            self.macros_path.touch()
             after_env_create_func = self.config.get('hooks', {}).get(
                 'after_env_create')
             if after_env_create_func:
@@ -149,9 +189,12 @@ class Loader(object):
         argh.arg('-n', '--name', default='main')(func)
         return func
 
+    def _set_paths(self):
+        self.inputs_path = self.storage_dir / 'inputs.yaml'
+        self.macros_path = self.storage_dir / 'macros.yaml'
+
     def _create_inputs(self, args, env_create_inputs):
         inputs = {}
-        inputs_path = self.storage_dir / 'inputs.yaml'
 
         with open(self.blueprint_path) as f:
             blueprint = yaml.safe_load(f) or {}
@@ -168,10 +211,10 @@ class Loader(object):
         inputs.update(blueprint_inputs_defaults)
         inputs.update(env_create_inputs)
 
-        inputs_path.write_text(
+        self.inputs_path.write_text(
             yaml.safe_dump(inputs, default_flow_style=False))
 
-        inputs_lines = inputs_path.lines()
+        inputs_lines = self.inputs_path.lines()
         new_input_lines = []
 
         first_line = True
@@ -198,7 +241,7 @@ class Loader(object):
             new_input_lines.append(line)
             first_line = False
 
-        inputs_path.write_lines(new_input_lines)
+        self.inputs_path.write_lines(new_input_lines)
 
     @argh.named('init')
     def _init_command(self, reset=False):
@@ -209,7 +252,7 @@ class Loader(object):
             else:
                 raise argh.CommandError('Already initialized, pass --reset '
                                         'to re-initialize.')
-        with open(self.storage_dir / 'inputs.yaml') as f:
+        with open(self.inputs_path) as f:
             inputs = yaml.safe_load(f) or {}
         temp_dir = path(tempfile.mkdtemp(
             prefix='{}-blueprint-dir-'.format(self.config['name'])))

@@ -129,6 +129,13 @@ class TestEnvCreate(tests.BaseTest):
         self.assertEqual(self.storage_dir('second'), storage_dir2)
         self.assertTrue(self.editable('second'))
 
+    def test_generated_macros_yaml(self):
+        config_path = 'plain.yaml'
+        macros_path = self.workdir / 'macros.yaml'
+        self.assertFalse(macros_path.isfile())
+        self.dispatch(config_path, 'env', 'create')
+        self.assertTrue(macros_path.isfile())
+
 
 def after_env_create(loader, arg1, arg2, **kwargs):
     with open('after_env_create', 'w') as f:
