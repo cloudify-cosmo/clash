@@ -30,6 +30,7 @@ class TestFunctions(tests.BaseTest):
         full_config_path = resources.DIR / 'configs' / 'plain.yaml'
         loader = _loader.Loader(config_path=full_config_path)
         args = {'arg1': 'arg1_value'}
+        custom_func_name = '{}:{}'.format(__name__, custom_func.__name__)
         with patch.dict(os.environ, {'MY_ENV_VAR': 'MY_ENV_VAR_VALUE'}):
             parsed_params = functions.parse_parameters(loader, {
                 'arg_based_param': {'arg': 'arg1'},
@@ -37,7 +38,22 @@ class TestFunctions(tests.BaseTest):
                 'env_based_param2': {'env': ['MY_ENV_VAR', 'not in use']},
                 'env_based_param3': {'env': ['NON_EXISTENT_ENV', 'fallback']},
                 'loader_based_param': {'loader': 'config'},
-                'concat_based_param': {'concat': ['a', 'b', 'c']}
+                'concat_based_param': {'concat': ['a', 'b', 'c']},
+                'func_based_param1': {'func': {
+                    'name': custom_func_name
+                }},
+                'func_based_param2': {'func': {
+                    'name': custom_func_name,
+                    'kwargs': {
+                        'kwarg': 'kwarg_value'
+                    }
+                }},
+                'func_based_param3': {'func': {
+                    'name': custom_func_name,
+                    'kwargs': {
+                        'kwarg': {'arg': 'arg1'}
+                    }
+                }}
             }, args=args)
         self.assertEqual(parsed_params, {
             'arg_based_param': 'arg1_value',
@@ -45,5 +61,24 @@ class TestFunctions(tests.BaseTest):
             'env_based_param2': 'MY_ENV_VAR_VALUE',
             'env_based_param3': 'fallback',
             'loader_based_param': loader.config,
-            'concat_based_param': 'abc'
+            'concat_based_param': 'abc',
+            'func_based_param1': {
+                'loader': loader.config,
+                'kwarg': 'None'
+            },
+            'func_based_param2': {
+                'loader': loader.config,
+                'kwarg': 'kwarg_value'
+            },
+            'func_based_param3': {
+                'loader': loader.config,
+                'kwarg': 'arg1_value'
+            }
         })
+
+
+def custom_func(loader, kwarg=None, **_):
+    return {
+        'loader': loader.config,
+        'kwarg': kwarg or 'None'
+    }

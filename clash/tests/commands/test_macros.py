@@ -51,6 +51,35 @@ class TestMacros(tests.BaseTest):
         self.assertIn('from workflow1', c.exception.stdout)
         self.assertIn('EXPECTED', c.exception.stderr)
 
+    def test_update_python_path(self):
+        config_path = 'pythonpath.yaml'
+        storage_dir_functions = self.workdir / 'storage_dir_functions'
+        storage_dir_functions.mkdir_p()
+        (storage_dir_functions / '__init__.py').touch()
+        script_path = storage_dir_functions / 'functions.py'
+        script_path.write_text('def func2(**_): return "2"')
+        macros = {
+            'macro-func': {
+                'commands': [
+                    {'name': 'command2',
+                     'args': [
+                         '--arg1',
+                         {'func': {
+                             'name': 'blueprint_functions.functions:func1'}},
+                         '--arg2',
+                         {'func': {
+                             'name': 'storage_dir_functions.functions:func2'}}
+                     ]}
+                ]
+            }
+        }
+        macros_path = self.workdir / 'macros.yaml'
+        macros_path.write_text(yaml.safe_dump(macros))
+        self.dispatch(config_path, 'env', 'create')
+        self.dispatch(config_path, 'init')
+        output = self.dispatch(config_path, 'macro-func').stdout
+        self.assertIn('param1: 1, param2: 2', output)
+
     def _test_macro(self, command):
         config_path = 'end_to_end.yaml'
         output1_path = self.workdir / 'output1.json'

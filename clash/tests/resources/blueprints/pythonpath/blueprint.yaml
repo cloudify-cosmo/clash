@@ -11,7 +11,11 @@ node_templates:
         op: p.blueprint_operations.ops.op
 
 workflows:
-  workflow3: blueprint_workflows/workflow3.py
+  workflow3:
+    mapping: blueprint_workflows/workflow3.py
+    parameters:
+      param1: {}
+      param2: {}
 
 plugins:
   script:

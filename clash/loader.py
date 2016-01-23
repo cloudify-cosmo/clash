@@ -104,6 +104,7 @@ class Loader(object):
                 os.environ['PATH'] = '{}{}{}'.format(bin_dir,
                                                      os.pathsep,
                                                      current_path_env)
+            self._set_python_path()
             parameters = functions.parse_parameters(
                 loader=self,
                 parameters=copy.deepcopy(command.get('parameters', {})),
@@ -117,7 +118,6 @@ class Loader(object):
             command_task_config = command.get('task', {})
             task_config.update(global_task_config)
             task_config.update(command_task_config)
-            sys.path.append(self.storage_dir / self._name / 'resources')
             env = self._load_env()
 
             event_cls = command.get('event_cls',
@@ -139,6 +139,7 @@ class Loader(object):
         @argh.expects_obj
         @argh.named(name)
         def func(args):
+            self._set_python_path()
             args = vars(args)
             for user_command in macro['commands']:
                 user_command_name = user_command['name']
@@ -192,6 +193,12 @@ class Loader(object):
     def _set_paths(self):
         self.inputs_path = self.storage_dir / 'inputs.yaml'
         self.macros_path = self.storage_dir / 'macros.yaml'
+
+    def _set_python_path(self):
+        resources = self.storage_dir / self._name / 'resources'
+        for python_path in [self.storage_dir, resources]:
+            if python_path not in sys.path:
+                sys.path.append(python_path)
 
     def _create_inputs(self, args, env_create_inputs):
         inputs = {}

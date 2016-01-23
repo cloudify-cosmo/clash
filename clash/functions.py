@@ -18,6 +18,10 @@ import os
 
 from dsl_parser import functions as dsl_functions
 
+from clash import module
+
+_RAW = object()
+
 
 def parse_parameters(loader, parameters, args):
 
@@ -26,10 +30,20 @@ def parse_parameters(loader, parameters, args):
             func_args = [func_args]
         return os.environ.get(*func_args)
 
+    def func(func_args):
+        kwargs = func_args.get('kwargs', {})
+        for value in kwargs.values():
+            if dsl_functions.parse(value) != value:
+                return _RAW
+        kwargs['loader'] = loader
+        function = module.load_attribute(func_args['name'])
+        return function(**kwargs)
+
     functions = {
         'env': env,
         'arg': lambda func_args: args[func_args],
-        'loader': lambda func_args: getattr(loader, func_args)
+        'loader': lambda func_args: getattr(loader, func_args),
+        'func': func
     }
     for name, process in functions.items():
         dsl_functions.register(_function(process), name)
@@ -51,5 +65,8 @@ def _function(process):
             self.function_args = args
 
         def evaluate_runtime(self, **_):
-            return process(self.function_args)
+            result = process(self.function_args)
+            if result is _RAW:
+                return self.raw
+            return result
     return Function

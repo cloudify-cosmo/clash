@@ -6,3 +6,17 @@ commands:
 
   command1:
     workflow: workflow3
+    parameters:
+      param1:
+        func: { name: 'blueprint_functions.functions:func1' }
+      param2:
+        func: { name: 'storage_dir_functions.functions:func2' }
+
+  command2:
+    workflow: workflow3
+    args:
+      - name: --arg1
+      - name: --arg2
+    parameters:
+      param1: { arg: arg1 }
+      param2: { arg: arg2 }

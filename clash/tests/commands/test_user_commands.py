@@ -77,10 +77,16 @@ class TestUserCommands(tests.BaseTest):
 
     def test_update_python_path(self):
         config_path = 'pythonpath.yaml'
+        storage_dir_functions = self.workdir / 'storage_dir_functions'
+        storage_dir_functions.mkdir_p()
+        (storage_dir_functions / '__init__.py').touch()
+        script_path = storage_dir_functions / 'functions.py'
+        script_path.write_text('def func2(**_): return 2')
         self.dispatch(config_path, 'env', 'create')
         self.dispatch(config_path, 'init')
         output = self.dispatch(config_path, 'command1').stdout
         self.assertIn('all good', output)
+        self.assertIn('param1: 1, param2: 2', output)
 
     def test_env_path(self):
         config_path = 'envpath.yaml'
