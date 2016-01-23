@@ -152,7 +152,7 @@ class Loader(object):
                 user_command_func = self.user_commands[user_command_name]
                 argh.dispatch_command(user_command_func,
                                       argv=user_command_args)
-        self._add_args_to_func(func, macro.get('args', []), skip_env=True)
+        self._add_args_to_func(func, macro.get('args', []), skip_env=False)
         return func
 
     def _load_env(self):
