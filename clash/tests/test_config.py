@@ -14,7 +14,11 @@
 # limitations under the License.
 ############
 
+import os
+
 import yaml
+from path import path
+from mock import patch
 
 from clash import config
 from clash import tests
@@ -22,96 +26,172 @@ from clash import tests
 
 class TestConfig(tests.BaseTest):
 
-    STORAGE_DIR = 'AAA'
+    def setUp(self):
+        super(TestConfig, self).setUp()
+        self.config_path = self.workdir / 'config.yaml'
 
-    def test_get_storage_dir_plain(self):
-        self.user_conf_path.write_text(yaml.safe_dump(self._user_conf(
-            'main', {'storage_dir': self.STORAGE_DIR})))
-        self.assertEqual(config.get_storage_dir(
-            self._conf(self.user_conf_path)), self.STORAGE_DIR)
+    def test_config_dir(self):
+        self._save({})
+        self.assertEqual(self.conf.config_dir, self.workdir)
 
-    def test_get_storage_dir_env(self):
-        self.user_conf_path.write_text(yaml.safe_dump(self._user_conf(
-            'main', {'storage_dir': self.STORAGE_DIR})))
-        self.assertEqual(config.get_storage_dir(
-            self._conf({'env': 'USER_CONF_PATH'})), self.STORAGE_DIR)
+    def test_name(self):
+        self._save({'name': 'HELLO'})
+        self.assertEqual(self.conf.name, 'HELLO')
 
-    def test_get_storage_dir_none(self):
-        self.assertEqual(config.get_storage_dir(
-            self._conf(self.user_conf_path)), None)
+    def test_user_config_path(self):
+        self._save({'user_config_path': '~/hello'})
+        self.assertEqual(self.conf.user_config_path,
+                         path('~/hello').expanduser())
+        self._save({'user_config_path': {'env': 'HELLO'}})
+        with patch.dict(os.environ, {'HELLO': 'WORLD'}):
+            self.assertEqual(self.conf.user_config_path, 'WORLD')
 
-    def test_update_storage_dir(self):
-        storage_dir2 = 'BBB'
-        conf = self._conf(self.user_conf_path)
-        config.set_current(conf, 'main')
-        config.update_storage_dir(conf, self.STORAGE_DIR)
-        self.assertEqual(self.storage_dir('main'), self.STORAGE_DIR)
-        config.set_current(conf, 'second')
-        config.update_storage_dir(conf, storage_dir2)
-        self.assertEqual(self.storage_dir('main'), self.STORAGE_DIR)
-        self.assertEqual(self.storage_dir('second'), storage_dir2)
+    def test_user_config(self):
+        self._save({'user_config_path': str(self.user_conf_path)})
+        self.user_conf_path.write_text(yaml.safe_dump({'current': 'now'}))
+        self.assertEqual(self.conf.user_config.current, 'now')
 
-    def test_is_editable(self):
-        self.user_conf_path.write_text(yaml.safe_dump(self._user_conf(
-                'main', {'editable': True})))
-        self.assertTrue(config.is_editable(self._conf(self.user_conf_path)))
+    def test_blueprint_path_and_dir(self):
+        self._save({'blueprint_path': '../hello.yaml'})
+        self.assertEqual(self.conf.blueprint_path,
+                         self.workdir.dirname() / 'hello.yaml')
+        self.assertEqual(self.conf.blueprint_dir, self.workdir.dirname())
 
-    def test_is_editable_default(self):
-        self.assertFalse(config.is_editable(self._conf(self.user_conf_path)))
+    def test_env_create(self):
+        self._save({})
+        self.assertEqual(self.conf.env_create, {})
+        self._save({'env_create': {'hello': 'world'}})
+        self.assertEqual(self.conf.env_create, {'hello': 'world'})
 
-    def test_update_editable(self):
-        conf = self._conf(self.user_conf_path)
-        config.set_current(conf, 'main')
-        config.update_editable(conf, True)
-        self.assertTrue(self.editable('main'))
-        config.set_current(conf, 'second')
-        config.update_editable(conf, False)
-        self.assertTrue(self.editable('main'))
-        self.assertFalse(self.editable('second'))
-        config.update_editable(conf, True)
-        self.assertTrue(self.editable('second'))
+    def test_commands(self):
+        self._save({})
+        self.assertEqual(self.conf.commands, {})
+        self._save({'commands': {'hello': 'world'}})
+        self.assertEqual(self.conf.commands, {'hello': 'world'})
+
+    def test_task(self):
+        self._save({})
+        self.assertEqual(self.conf.task, {})
+        self._save({'task': {'hello': 'world'}})
+        self.assertEqual(self.conf.task, {'hello': 'world'})
+
+    def test_event_cls(self):
+        self._save({})
+        self.assertIsNone(self.conf.event_cls)
+        self._save({'event_cls': 'my_class'})
+        self.assertEqual(self.conf.event_cls, 'my_class')
+
+    def test_hooks(self):
+        self._save({})
+        hooks = self.conf.hooks
+        self.assertIsNone(hooks.after_env_create)
+        self.assertIsNone(hooks.before_init)
+        self._save({'hooks': {'after_env_create': 'ONE',
+                              'before_init': 'TWO'}})
+        hooks = self.conf.hooks
+        self.assertEqual(hooks.after_env_create, 'ONE')
+        self.assertEqual(hooks.before_init, 'TWO')
+
+    def test_ignored_modules(self):
+        self._save({})
+        self.assertEqual(self.conf.ignored_modules, [])
+        self._save({'ignored_modules': ['one', 'two']})
+        self.assertEqual(self.conf.ignored_modules, ['one', 'two'])
+
+    def test_command_after_init_on_apply(self):
+        self._save({})
+        self.assertIsNone(self.conf.command_after_init_on_apply)
+        self._save({'command_after_init_on_apply': 'my_command'})
+        self.assertEqual(self.conf.command_after_init_on_apply, 'my_command')
+
+    def _save(self, value):
+        self.config_path.write_text(yaml.safe_dump(value))
+
+    @property
+    def conf(self):
+        return config.Config(self.config_path)
+
+
+class TestUserConfig(tests.BaseTest):
+
+    def setUp(self):
+        super(TestUserConfig, self).setUp()
+        self._reload()
+
+    def _reload(self):
+        self.user_config = config.UserConfig(self.user_conf_path)
+
+    def test_user_config_no_file(self):
+        self.assertEquals(self.user_config.user_config, {})
+
+    def test_user_config(self):
+        user_config = {'hello': 'world'}
+        # test setter
+        self.user_config.user_config = user_config
+        self.assertEqual(self.user_conf(), user_config)
+        self._reload()
+        # test getter
+        self.assertEqual(self.user_config.user_config, user_config)
 
     def test_configurations(self):
-        configurations = {
-            'main': {'editable': True},
-            'second': {'editable': False}
-        }
-        self.user_conf_path.write_text(yaml.safe_dump({
-            'current': 'main',
-            'configurations': configurations}))
-        self.assertEqual(configurations, config.configurations(
-            self._conf(self.user_conf_path)))
-        self.assertEqual(
-            set(configurations.keys()),
-            set(config.configuration_names(self._conf(self.user_conf_path))))
-        return configurations
+        configurations = {'hello': 'world'}
+        self.user_config.configurations = configurations
+        self.assertEqual(self.user_config.configurations, configurations)
+        self._reload()
+        self.assertEqual(self.user_config.configurations, configurations)
+        self.assertEqual(self.user_config.configuration_names, ['hello'])
 
     def test_remove_configuration(self):
-        configurations = self.test_configurations()
-        name = 'second'
-        configurations.pop(name)
-        config.remove_configuration(self._conf(self.user_conf_path), name)
-        self.assertEqual(
-            configurations,
-            config.configurations(self._conf(self.user_conf_path)))
+        user_config = {'configurations': {'hello': 'world',
+                                          'goodbye': 'night'},
+                       'current': 'hello'}
+        self.user_config.user_config = user_config
+        self.assertEqual(self.user_config.current, 'hello')
+        self.user_config.remove_configuration('hello')
+        self._reload()
+        self.assertEqual(self.user_config.current, 'goodbye')
+        self.assertEqual(self.user_config.configurations, {'goodbye': 'night'})
+        self.user_config.remove_configuration('goodbye')
+        self._reload()
+        self.assertIsNone(self.user_config.current)
 
-    def test_get_current(self):
-        self.user_conf_path.write_text(yaml.safe_dump(self._user_conf(
-                'main', {})))
-        self.assertEqual('main', config.get_current(
-            self._conf(self.user_conf_path)))
+    def test_current(self):
+        user_config = {'current': 'one'}
+        self.user_config.user_config = user_config
+        self._reload()
+        self.assertEqual(self.user_config.current, 'one')
+        self.user_config.current = 'two'
+        self._reload()
+        self.assertEqual(self.user_config.current, 'two')
 
-    def test_set_current(self):
-        config.set_current(self._conf(self.user_conf_path), 'second')
-        self.assertEqual(self.current(), 'second')
+    def test_current_user_config(self):
+        user_config = {'configurations': {'hello': {'world': 'war'}},
+                       'current': 'hello'}
+        self.user_config.user_config = user_config
+        self.user_config.current_user_config = {'world2': 'war2'}
+        self._reload()
+        self.assertEqual(self.user_config.current_user_config,
+                         {'world2': 'war2'})
 
-    def _conf(self, path):
-        return {'user_config_path': path}
-
-    def _user_conf(self, name, current):
-        return {
-            'current': name,
+    def test_storage_dir(self):
+        self.assertIsNone(self.user_config.storage_dir)
+        user_config = {
+            'current': 'main',
             'configurations': {
-                name: current
+                'main': {'storage_dir': 'AAA'}
             }
         }
+        self.user_config.user_config = user_config
+        self._reload()
+        self.assertEqual(self.user_config.storage_dir, 'AAA')
+
+    def test_editable(self):
+        self.assertIs(self.user_config.editable, False)
+        self.user_config.user_config = {
+            'current': 'main',
+            'configurations': {
+                'main': {'editable': True}
+            }
+        }
+        self._reload()
+        self.assertIs(self.user_config.editable, True)

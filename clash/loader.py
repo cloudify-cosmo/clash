@@ -40,21 +40,14 @@ class Loader(object):
     _name = '.local'
 
     def __init__(self, config_path):
-        config_path = path(config_path)
-        config_dir = config_path.dirname()
-        self.config = _json.loads(_json.dumps(yaml.safe_load(
-            config_path.text())))
-        self.blueprint_path = config_dir / self.config['blueprint_path']
-        self.blueprint_path = self.blueprint_path.abspath()
-        self.blueprint_dir = self.blueprint_path.dirname()
+        self.config = config.Config(config_path)
+        self.user_config = self.config.user_config
         self.user_commands = {}
         self._parser = argh.ArghParser()
-        env_commands = [
-            self._parse_env_create_command(env_create=self.config.get(
-                    'env_create', {}))]
-        self.storage_dir = config.get_storage_dir(self.config)
+        self.storage_dir = self.user_config.storage_dir
         self.inputs_path = None
         self.macros_path = None
+        env_commands = [self._parse_env_create_command()]
         if self.storage_dir:
             self._set_paths()
             if self.macros_path.exists():
@@ -62,7 +55,7 @@ class Loader(object):
             else:
                 macros = {}
             env_commands += self._parse_env_subcommands()
-            self._parse_commands(commands=self.config.get('commands', {}),
+            self._parse_commands(commands=self.config.commands,
                                  macros=macros)
             self._parser.add_commands(functions=[self._init_command,
                                                  self._status_command,
@@ -114,14 +107,14 @@ class Loader(object):
                 'retry_interval': 1,
                 'thread_pool_size': 1
             }
-            global_task_config = self.config.get('task', {})
+            global_task_config = self.config.task
             command_task_config = command.get('task', {})
             task_config.update(global_task_config)
             task_config.update(command_task_config)
             env = self._load_env()
 
             event_cls = command.get('event_cls',
-                                    self.config.get('event_cls'))
+                                    self.config.event_cls)
             output.setup_output(event_cls=event_cls,
                                 verbose=args.verbose,
                                 env=env,
@@ -161,11 +154,13 @@ class Loader(object):
     def _storage(self):
         return local.FileStorage(storage_dir=self.storage_dir)
 
-    def _parse_env_create_command(self, env_create):
+    def _parse_env_create_command(self):
+        env_create = self.config.env_create
+
         @argh.expects_obj
         @argh.named('create')
         def func(args):
-            if (config.get_current(self.config) == args.name and
+            if (self.user_config.current == args.name and
                     self.storage_dir and not args.reset):
                 raise argh.CommandError('storage dir already configured. pass '
                                         '--reset to override.')
@@ -173,13 +168,12 @@ class Loader(object):
             self.storage_dir = path(storage_dir)
             self.storage_dir.mkdir_p()
             self._set_paths()
-            config.set_current(self.config, args.name)
-            config.update_storage_dir(self.config, storage_dir)
-            config.update_editable(self.config, args.editable)
+            self.user_config.current = args.name
+            self.user_config.storage_dir = storage_dir
+            self.user_config.editable = args.editable
             self._create_inputs(args, env_create.get('inputs', {}))
             self.macros_path.touch()
-            after_env_create_func = self.config.get('hooks', {}).get(
-                'after_env_create')
+            after_env_create_func = self.config.hooks.after_env_create
             if after_env_create_func:
                 after_env_create = module.load_attribute(after_env_create_func)
                 after_env_create(self, **vars(args))
@@ -203,7 +197,7 @@ class Loader(object):
     def _create_inputs(self, args, env_create_inputs):
         inputs = {}
 
-        with open(self.blueprint_path) as f:
+        with open(self.config.blueprint_path) as f:
             blueprint = yaml.safe_load(f) or {}
         blueprint_inputs = blueprint.get('inputs', {})
         blueprint_inputs_defaults = {
@@ -262,13 +256,14 @@ class Loader(object):
         with open(self.inputs_path) as f:
             inputs = yaml.safe_load(f) or {}
         temp_dir = path(tempfile.mkdtemp(
-            prefix='{}-blueprint-dir-'.format(self.config['name'])))
+            prefix='{}-blueprint-dir-'.format(self.config.name)))
         blueprint_dir = temp_dir / 'blueprint'
         try:
-            shutil.copytree(self.blueprint_dir, blueprint_dir)
+            shutil.copytree(self.config.blueprint_dir, blueprint_dir)
             sys.path.append(blueprint_dir)
-            blueprint_path = blueprint_dir / self.blueprint_path.basename()
-            before_init_func = self.config.get('hooks', {}).get('before_init')
+            blueprint_path = (blueprint_dir /
+                              self.config.blueprint_path.basename())
+            before_init_func = self.config.hooks.before_init
             if before_init_func:
                 blueprint = yaml.safe_load(blueprint_path.text())
                 before_init = module.load_attribute(before_init_func)
@@ -276,43 +271,42 @@ class Loader(object):
                             inputs=inputs,
                             loader=self)
                 blueprint_path.write_text(yaml.safe_dump(blueprint))
-            ignored_modules = self.config.get('ignored_modules', [])
             local.init_env(blueprint_path=blueprint_path,
                            inputs=inputs,
                            name=self._name,
                            storage=self._storage(),
-                           ignored_modules=ignored_modules)
+                           ignored_modules=self.config.ignored_modules)
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
-        if config.is_editable(self.config):
+        if self.user_config.editable:
             resources_path = self.storage_dir / self._name / 'resources'
             shutil.rmtree(resources_path, ignore_errors=True)
-            os.symlink(self.blueprint_dir, resources_path)
+            os.symlink(self.config.blueprint_dir, resources_path)
 
     def _parse_env_subcommands(self):
-        configuration_names = config.configuration_names(self.config)
+        configuration_names = self.user_config.configuration_names
 
         def name_completer(prefix, *args, **kwargs):
             return (n for n in configuration_names if n.startswith(prefix))
 
         @argh.named('use')
         def _use_command(name):
-            if name not in config.configuration_names(self.config):
+            if name not in configuration_names:
                 raise argh.CommandError('No such configuration: {}'
                                         .format(name))
-            config.set_current(self.config, name)
+            self.user_config.current = name
         argh.arg('name', completer=name_completer)(_use_command)
 
         @argh.named('remove')
         def _remove_command(name):
-            if name not in config.configuration_names(self.config):
+            if name not in configuration_names:
                 raise argh.CommandError('No such configuration: {}')
-            config.remove_configuration(self.config, name)
+            self.user_config.remove_configuration(name)
         argh.arg('name', completer=name_completer)(_remove_command)
 
         @argh.named('list')
         def _list_command():
-            return '\n'.join(config.configuration_names(self.config))
+            return '\n'.join(configuration_names)
 
         return [_use_command, _remove_command, _list_command]
 
@@ -324,9 +318,9 @@ class Loader(object):
             outputs = {'error': str(e)}
         status = {
             'env': {
-                'current': config.get_current(self.config),
-                'storage_dir': str(config.get_storage_dir(self.config)),
-                'editable': config.is_editable(self.config)
+                'current': self.user_config.current,
+                'storage_dir': str(self.user_config.storage_dir),
+                'editable': self.user_config.editable
             },
             'outputs': outputs
         }
@@ -338,7 +332,7 @@ class Loader(object):
     @argh.named('apply')
     def _apply_command(self, verbose=False):
         self._init_command(reset=True)
-        user_command = self.config.get('command_after_init_on_apply')
+        user_command = self.config.command_after_init_on_apply
         if user_command:
             user_command_func = self.user_commands[user_command]
             user_command_func(argparse.Namespace(verbose=verbose))

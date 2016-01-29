@@ -140,7 +140,7 @@ class TestEnvCreate(tests.BaseTest):
 def after_env_create(loader, arg1, arg2, **kwargs):
     with open('after_env_create', 'w') as f:
         f.write(json.dumps({
-            'name': loader.config['name'],
+            'name': loader.config.name,
             'arg1': arg1,
             'arg2': arg2
         }))

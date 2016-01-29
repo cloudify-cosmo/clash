@@ -101,4 +101,4 @@ def before_init(blueprint, inputs, loader, **kwargs):
             'value': {'get_input': 'from_before_init'}
         }
     })
-    inputs['from_before_init'] = loader.config['name']
+    inputs['from_before_init'] = loader.config.name

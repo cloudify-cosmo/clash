@@ -18,7 +18,7 @@ from setuptools import setup
 
 setup(
     name='clash',
-    version='0.9',
+    version='0.10',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
     packages=['clash'],

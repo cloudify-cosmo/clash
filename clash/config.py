@@ -14,7 +14,7 @@
 # limitations under the License.
 ############
 
-from contextlib import contextmanager
+import json
 
 import yaml
 from path import path
@@ -22,110 +22,165 @@ from path import path
 from clash import functions
 
 
-def _get_user_config_path(config):
-    user_config_path = config['user_config_path']
-    if isinstance(user_config_path, dict):
-        user_config_path = functions.parse_parameters(
-            parameters={'holder': user_config_path},
-            loader=None,
-            args=None)['holder']
-    user_config_path = path(user_config_path).expanduser()
-    return user_config_path
+class Config(object):
+
+    def __init__(self, config_path):
+        config_path = path(config_path).expanduser().abspath()
+        self.config = json.loads(json.dumps(yaml.safe_load(
+            config_path.text())))
+        self.config_dir = config_path.dirname()
+
+    @property
+    def name(self):
+        return self.config['name']
+
+    @property
+    def user_config_path(self):
+        result = self.config['user_config_path']
+        if isinstance(result, dict):
+            result = functions.parse_parameters(
+                parameters={'holder': result},
+                loader=None,
+                args=None)['holder']
+        return path(result).expanduser()
+
+    @property
+    def user_config(self):
+        return UserConfig(self.user_config_path)
+
+    @property
+    def blueprint_path(self):
+        return (self.config_dir / self.config['blueprint_path']).abspath()
+
+    @property
+    def blueprint_dir(self):
+        return self.blueprint_path.dirname()
+
+    @property
+    def env_create(self):
+        return self.config.get('env_create', {})
+
+    @property
+    def commands(self):
+        return self.config.get('commands', {})
+
+    @property
+    def task(self):
+        return self.config.get('task', {})
+
+    @property
+    def event_cls(self):
+        return self.config.get('event_cls')
+
+    @property
+    def hooks(self):
+        return ConfigHooks(self.config.get('hooks', {}))
+
+    @property
+    def ignored_modules(self):
+        return self.config.get('ignored_modules', [])
+
+    @property
+    def command_after_init_on_apply(self):
+        return self.config.get('command_after_init_on_apply')
 
 
-def _load_user_config(config):
-    user_config_path = _get_user_config_path(config)
-    if not user_config_path.exists():
-        return {}
-    return yaml.safe_load(user_config_path.text())
+class ConfigHooks(object):
+
+    def __init__(self, hooks):
+        self.hooks = hooks
+
+    @property
+    def after_env_create(self):
+        return self.hooks.get('after_env_create')
+
+    @property
+    def before_init(self):
+        return self.hooks.get('before_init')
 
 
-def _update_user_config(config, user_config):
-    user_config_path = _get_user_config_path(config)
-    user_config_path.write_text(yaml.safe_dump(user_config))
+class UserConfig(object):
 
+    def __init__(self, user_config_path):
+        self.user_config_path = user_config_path
+        self._user_config = None
 
-@contextmanager
-def _user_config(config):
-    user_config = _load_user_config(config)
-    yield user_config
-    _update_user_config(config, user_config)
+    @property
+    def user_config(self):
+        if self._user_config:
+            return self._user_config
+        if not self.user_config_path.exists():
+            return {}
+        result = yaml.safe_load(self.user_config_path.text())
+        self._user_config = result
+        return result
 
+    @user_config.setter
+    def user_config(self, value):
+        self._user_config = value
+        self.user_config_path.write_text(yaml.safe_dump(value))
 
-def _load_current_user_config(config):
-    user_config = _load_user_config(config)
-    configurations = user_config.get('configurations', {})
-    return configurations.get(user_config.get('current'), {})
+    @property
+    def configurations(self):
+        return self.user_config.get('configurations', {})
 
+    @configurations.setter
+    def configurations(self, value):
+        user_config = self.user_config
+        user_config['configurations'] = value
+        self.user_config = user_config
 
-def _update_current_user_config(config, current_user_config):
-    user_config_path = _get_user_config_path(config)
-    user_config = _load_user_config(config)
-    current = user_config['current']
-    configurations = user_config.get('configurations', {})
-    updated_conf = configurations.get(current, {})
-    updated_conf.update(current_user_config)
-    configurations[current] = updated_conf
-    user_config['configurations'] = configurations
-    user_config_path.write_text(yaml.safe_dump(user_config))
+    @property
+    def configuration_names(self):
+        return self.configurations.keys()
 
-
-@contextmanager
-def _current_user_config(config):
-    current_user_config = _load_current_user_config(config)
-    yield current_user_config
-    _update_current_user_config(config, current_user_config)
-
-
-def configurations(config):
-    return _load_user_config(config).get('configurations', {})
-
-
-def configuration_names(config):
-    return configurations(config).keys()
-
-
-def remove_configuration(config, name):
-    with _user_config(config) as user_config:
-        configurations = user_config.get('configurations')
+    def remove_configuration(self, name):
+        configurations = self.configurations
         configurations.pop(name, None)
-    if get_current(config) == name:
-        set_current(config, next(iter(configurations.keys()), None))
+        self.configurations = configurations
+        if self.current == name:
+            self.current = next(iter(self.configuration_names), None)
 
+    @property
+    def current(self):
+        return self.user_config.get('current', '')
 
-def get_current(config):
-    return _load_user_config(config).get('current', '')
+    @current.setter
+    def current(self, value):
+        user_config = self.user_config
+        user_config['current'] = value
+        self.user_config = user_config
 
+    @property
+    def current_user_config(self):
+        return self.configurations.get(self.current, {})
 
-def set_current(config, name):
-    with _user_config(config) as user_config:
-        user_config.update({
-            'current': name
-        })
+    @current_user_config.setter
+    def current_user_config(self, value):
+        configurations = self.configurations
+        configurations[self.current] = value
+        self.configurations = configurations
 
+    @property
+    def storage_dir(self):
+        current_user_config = self.current_user_config
+        storage_dir = current_user_config.get('storage_dir')
+        if not storage_dir:
+            return None
+        return path(storage_dir)
 
-def get_storage_dir(config):
-    current_user_config = _load_current_user_config(config)
-    storage_dir = current_user_config.get('storage_dir')
-    if not storage_dir:
-        return None
-    return path(storage_dir)
+    @storage_dir.setter
+    def storage_dir(self, value):
+        current_user_config = self.current_user_config
+        current_user_config['storage_dir'] = str(value)
+        self.current_user_config = current_user_config
 
+    @property
+    def editable(self):
+        return self.current_user_config.get('editable', False)
 
-def update_storage_dir(config, storage_dir):
-    with _current_user_config(config) as current_user_config:
-        current_user_config.update({
-            'storage_dir': storage_dir
-        })
-
-
-def is_editable(config):
-    current_user_config = _load_current_user_config(config)
-    return current_user_config.get('editable', False)
-
-
-def update_editable(config, editable):
-    with _current_user_config(config) as current_user_config:
-        current_user_config.update({
-            'editable': editable
-        })
+    @editable.setter
+    def editable(self, value):
+        current_user_config = self.current_user_config
+        current_user_config['editable'] = value
+        self.current_user_config = current_user_config
