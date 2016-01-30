@@ -184,3 +184,36 @@ class UserConfig(object):
         current_user_config = self.current_user_config
         current_user_config['editable'] = value
         self.current_user_config = current_user_config
+
+    @property
+    def inputs_path(self):
+        storage_dir = self.storage_dir
+        if not storage_dir:
+            return None
+        return storage_dir / 'inputs.yaml'
+
+    @property
+    def inputs(self):
+        inputs_path = self.inputs_path
+        if not inputs_path:
+            return {}
+        return yaml.safe_load(inputs_path.text()) or {}
+
+    @inputs.setter
+    def inputs(self, value):
+        self.inputs_path.write_text(
+                yaml.safe_dump(value, default_flow_style=False))
+
+    @property
+    def macros_path(self):
+        storage_dir = self.storage_dir
+        if not storage_dir:
+            return None
+        return storage_dir / 'macros.yaml'
+
+    @property
+    def macros(self):
+        macros_path = self.macros_path
+        if not macros_path:
+            return {}
+        return yaml.safe_load(macros_path.text()) or {}

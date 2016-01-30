@@ -175,15 +175,35 @@ class TestUserConfig(tests.BaseTest):
 
     def test_storage_dir(self):
         self.assertIsNone(self.user_config.storage_dir)
+        self.assertIsNone(self.user_config.inputs_path)
+        self.assertIsNone(self.user_config.macros_path)
+        self.assertEqual(self.user_config.inputs, {})
+        self.assertEqual(self.user_config.macros, {})
+        storage_dir = self.workdir / 'storage'
+        storage_dir.mkdir()
         user_config = {
             'current': 'main',
             'configurations': {
-                'main': {'storage_dir': 'AAA'}
+                'main': {'storage_dir': str(storage_dir)}
             }
         }
         self.user_config.user_config = user_config
         self._reload()
-        self.assertEqual(self.user_config.storage_dir, 'AAA')
+        self.assertEqual(self.user_config.storage_dir, storage_dir)
+        self.assertEqual(self.user_config.inputs_path,
+                         storage_dir / 'inputs.yaml')
+        self.assertEqual(self.user_config.macros_path,
+                         storage_dir / 'macros.yaml')
+        inputs = {'good': 'day'}
+        macros = {'hello': 'world'}
+        self.user_config.macros_path.write_text(yaml.safe_dump(macros))
+        self.user_config.inputs_path.write_text(yaml.safe_dump(inputs))
+        self.assertEqual(self.user_config.macros, macros)
+        self.assertEqual(self.user_config.inputs, inputs)
+        inputs2 = {'good2': 'day2'}
+        self.user_config.inputs = inputs2
+        self._reload()
+        self.assertEqual(self.user_config.inputs, inputs2)
 
     def test_editable(self):
         self.assertIs(self.user_config.editable, False)

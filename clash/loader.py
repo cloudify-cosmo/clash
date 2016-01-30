@@ -44,19 +44,11 @@ class Loader(object):
         self.user_config = self.config.user_config
         self.user_commands = {}
         self._parser = argh.ArghParser()
-        self.storage_dir = self.user_config.storage_dir
-        self.inputs_path = None
-        self.macros_path = None
         env_commands = [self._parse_env_create_command()]
-        if self.storage_dir:
-            self._set_paths()
-            if self.macros_path.exists():
-                macros = yaml.safe_load(self.macros_path.text()) or {}
-            else:
-                macros = {}
+        if self.user_config.storage_dir:
             env_commands += self._parse_env_subcommands()
             self._parse_commands(commands=self.config.commands,
-                                 macros=macros)
+                                 macros=self.user_config.macros)
             self._parser.add_commands(functions=[self._init_command,
                                                  self._status_command,
                                                  self._apply_command])
@@ -152,7 +144,7 @@ class Loader(object):
         return local.load_env(name=self._name, storage=self._storage())
 
     def _storage(self):
-        return local.FileStorage(storage_dir=self.storage_dir)
+        return local.FileStorage(storage_dir=self.user_config.storage_dir)
 
     def _parse_env_create_command(self):
         env_create = self.config.env_create
@@ -161,18 +153,16 @@ class Loader(object):
         @argh.named('create')
         def func(args):
             if (self.user_config.current == args.name and
-                    self.storage_dir and not args.reset):
+                    self.user_config.storage_dir and not args.reset):
                 raise argh.CommandError('storage dir already configured. pass '
                                         '--reset to override.')
             storage_dir = args.storage_dir or os.getcwd()
-            self.storage_dir = path(storage_dir)
-            self.storage_dir.mkdir_p()
-            self._set_paths()
             self.user_config.current = args.name
-            self.user_config.storage_dir = storage_dir
             self.user_config.editable = args.editable
+            self.user_config.storage_dir = storage_dir
+            self.user_config.storage_dir.mkdir_p()
             self._create_inputs(args, env_create.get('inputs', {}))
-            self.macros_path.touch()
+            self.user_config.macros_path.touch()
             after_env_create_func = self.config.hooks.after_env_create
             if after_env_create_func:
                 after_env_create = module.load_attribute(after_env_create_func)
@@ -184,13 +174,9 @@ class Loader(object):
         argh.arg('-n', '--name', default='main')(func)
         return func
 
-    def _set_paths(self):
-        self.inputs_path = self.storage_dir / 'inputs.yaml'
-        self.macros_path = self.storage_dir / 'macros.yaml'
-
     def _set_python_path(self):
-        resources = self.storage_dir / self._name / 'resources'
-        for python_path in [self.storage_dir, resources]:
+        resources = self.user_config.storage_dir / self._name / 'resources'
+        for python_path in [self.user_config.storage_dir, resources]:
             if python_path not in sys.path:
                 sys.path.append(python_path)
 
@@ -212,10 +198,9 @@ class Loader(object):
         inputs.update(blueprint_inputs_defaults)
         inputs.update(env_create_inputs)
 
-        self.inputs_path.write_text(
-            yaml.safe_dump(inputs, default_flow_style=False))
+        self.user_config.inputs = inputs
 
-        inputs_lines = self.inputs_path.lines()
+        inputs_lines = self.user_config.inputs_path.lines()
         new_input_lines = []
 
         first_line = True
@@ -242,19 +227,18 @@ class Loader(object):
             new_input_lines.append(line)
             first_line = False
 
-        self.inputs_path.write_lines(new_input_lines)
+        self.user_config.inputs_path.write_lines(new_input_lines)
 
     @argh.named('init')
     def _init_command(self, reset=False):
-        local_dir = self.storage_dir / self._name
+        local_dir = self.user_config.storage_dir / self._name
         if local_dir.exists():
             if reset:
                 shutil.rmtree(local_dir)
             else:
                 raise argh.CommandError('Already initialized, pass --reset '
                                         'to re-initialize.')
-        with open(self.inputs_path) as f:
-            inputs = yaml.safe_load(f) or {}
+        inputs = self.user_config.inputs
         temp_dir = path(tempfile.mkdtemp(
             prefix='{}-blueprint-dir-'.format(self.config.name)))
         blueprint_dir = temp_dir / 'blueprint'
@@ -279,7 +263,8 @@ class Loader(object):
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
         if self.user_config.editable:
-            resources_path = self.storage_dir / self._name / 'resources'
+            resources_path = (self.user_config.storage_dir / self._name /
+                              'resources')
             shutil.rmtree(resources_path, ignore_errors=True)
             os.symlink(self.config.blueprint_dir, resources_path)
 
