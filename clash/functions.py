@@ -42,6 +42,8 @@ def parse_parameters(loader, parameters, args):
     functions = {
         'env': env,
         'arg': lambda func_args: args[func_args],
+        'user_config': lambda func_args: getattr(loader.user_config,
+                                                 func_args),
         'loader': lambda func_args: getattr(loader, func_args),
         'func': func
     }

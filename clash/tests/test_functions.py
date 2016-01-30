@@ -38,6 +38,7 @@ class TestFunctions(tests.BaseTest):
                 'env_based_param2': {'env': ['MY_ENV_VAR', 'not in use']},
                 'env_based_param3': {'env': ['NON_EXISTENT_ENV', 'fallback']},
                 'loader_based_param': {'loader': 'config'},
+                'user_config_based_param': {'user_config': 'inputs'},
                 'concat_based_param': {'concat': ['a', 'b', 'c']},
                 'func_based_param1': {'func': {
                     'name': custom_func_name
@@ -61,6 +62,7 @@ class TestFunctions(tests.BaseTest):
             'env_based_param2': 'MY_ENV_VAR_VALUE',
             'env_based_param3': 'fallback',
             'loader_based_param': loader.config,
+            'user_config_based_param': {},
             'concat_based_param': 'abc',
             'func_based_param1': {
                 'loader': loader.config,
