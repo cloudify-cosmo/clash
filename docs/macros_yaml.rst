@@ -102,11 +102,11 @@ Intrinsic Functions
 Intrinsic functions can be used to build complex arguments. In the previous
 example, we used the ``arg`` intrinsic function to read the argument provided
 to the ``prepare-pull-request`` macro, and the ``func`` intrinsic function
-which can be used to implement use defined intrinsic functions.
+which can be used to implement user defined intrinsic functions.
 
 Additional built-in intrinsic functions include:
 
 * ``env`` to read environment variables. (Value can be a string or a list of two
-  elements in which the second element will be a default value)
-* ``concat`` to concatenate strings. (value is a list of elements to concatenate)
+  elements in which the second element will serve as a default value).
+* ``concat`` to concatenate strings. (Value is a list of elements to concatenate).
 * ``loader`` and ``user_config`` to read attribute from ``clash`` defined objects.

@@ -1,7 +1,7 @@
 Clash - Cloudify Apt Shell Framework
 ====================================
 
-``clash`` is a framework that can expose blueprints and workflow that are written
+``clash`` is a framework that can expose blueprints and workflows that are written
 to run locally as CLIs.
 
 The code lives `here <https://github.com/dankilman/clash>`_.
