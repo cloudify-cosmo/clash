@@ -195,7 +195,7 @@ class UserConfig(object):
     @property
     def inputs(self):
         inputs_path = self.inputs_path
-        if not inputs_path:
+        if not inputs_path or not inputs_path.exists():
             return {}
         return yaml.safe_load(inputs_path.text()) or {}
 
@@ -214,6 +214,6 @@ class UserConfig(object):
     @property
     def macros(self):
         macros_path = self.macros_path
-        if not macros_path:
+        if not macros_path or not macros_path.exists():
             return {}
         return yaml.safe_load(macros_path.text()) or {}

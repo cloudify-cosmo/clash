@@ -204,6 +204,11 @@ class TestUserConfig(tests.BaseTest):
         self.user_config.inputs = inputs2
         self._reload()
         self.assertEqual(self.user_config.inputs, inputs2)
+        self._reload()
+        self.user_config.inputs_path.remove()
+        self.user_config.macros_path.remove()
+        self.assertEqual(self.user_config.inputs, {})
+        self.assertEqual(self.user_config.macros, {})
 
     def test_editable(self):
         self.assertIs(self.user_config.editable, False)
