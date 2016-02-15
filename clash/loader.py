@@ -57,7 +57,7 @@ class Loader(object):
     def _parse_commands(self, commands, macros, namespace=None):
         functions = []
         for name, command in commands.items():
-            if 'workflow' not in command:
+            if 'workflow' not in command and 'function' not in command:
                 self._parse_commands(commands=command, namespace=name,
                                      macros=macros.get(name, {}))
                 continue
@@ -79,44 +79,49 @@ class Loader(object):
         self._parser.add_commands(functions=functions, namespace=namespace)
 
     def _parse_command(self, name, command):
-        @argh.expects_obj
-        @argh.named(name)
-        @argh.arg('-v', '--verbose', default=False)
-        def func(args):
-            bin_dir = path(sys.executable).dirname()
-            current_path_env = os.environ.get('PATH', '')
-            if bin_dir not in current_path_env:
-                os.environ['PATH'] = '{}{}{}'.format(bin_dir,
-                                                     os.pathsep,
-                                                     current_path_env)
-            self._set_python_path()
-            parameters = functions.parse_parameters(
-                loader=self,
-                parameters=copy.deepcopy(command.get('parameters', {})),
-                args=vars(args))
-            task_config = {
-                'retries': 0,
-                'retry_interval': 1,
-                'thread_pool_size': 1
-            }
-            global_task_config = self.config.task
-            command_task_config = command.get('task', {})
-            task_config.update(global_task_config)
-            task_config.update(command_task_config)
-            env = self._load_env()
+        if 'function' in command:
+            @argh.expects_obj
+            @argh.named(name)
+            def func(args):
+                self._set_paths()
+                function = module.load_attribute(command['function'])
+                kwargs = vars(args)
+                kwargs.pop('_functions_stack', None)
+                return function(**kwargs)
+        else:
+            @argh.expects_obj
+            @argh.named(name)
+            @argh.arg('-v', '--verbose', default=False)
+            def func(args):
+                self._set_paths()
+                parameters = functions.parse_parameters(
+                    loader=self,
+                    parameters=copy.deepcopy(command.get('parameters', {})),
+                    args=vars(args))
+                task_config = {
+                    'retries': 0,
+                    'retry_interval': 1,
+                    'thread_pool_size': 1
+                }
+                global_task_config = self.config.task
+                command_task_config = command.get('task', {})
+                task_config.update(global_task_config)
+                task_config.update(command_task_config)
+                env = self._load_env()
 
-            event_cls = command.get('event_cls',
-                                    self.config.event_cls)
-            output.setup_output(event_cls=event_cls,
-                                verbose=args.verbose,
-                                env=env,
-                                command=command)
+                event_cls = command.get('event_cls',
+                                        self.config.event_cls)
+                output.setup_output(event_cls=event_cls,
+                                    verbose=args.verbose,
+                                    env=env,
+                                    command=command)
 
-            env.execute(workflow=command['workflow'],
-                        parameters=parameters,
-                        task_retries=task_config['retries'],
-                        task_retry_interval=task_config['retry_interval'],
-                        task_thread_pool_size=task_config['thread_pool_size'])
+                env.execute(
+                    workflow=command['workflow'],
+                    parameters=parameters,
+                    task_retries=task_config['retries'],
+                    task_retry_interval=task_config['retry_interval'],
+                    task_thread_pool_size=task_config['thread_pool_size'])
         self._add_args_to_func(func, command.get('args', []), skip_env=False)
         return func
 
@@ -124,7 +129,7 @@ class Loader(object):
         @argh.expects_obj
         @argh.named(name)
         def func(args):
-            self._set_python_path()
+            self._set_paths()
             args = vars(args)
             for user_command in macro['commands']:
                 user_command_name = user_command['name']
@@ -174,7 +179,15 @@ class Loader(object):
         argh.arg('-n', '--name', default='main')(func)
         return func
 
-    def _set_python_path(self):
+    def _set_paths(self):
+        # PATH
+        bin_dir = path(sys.executable).dirname()
+        current_path_env = os.environ.get('PATH', '')
+        if bin_dir not in current_path_env:
+            os.environ['PATH'] = '{}{}{}'.format(bin_dir,
+                                                 os.pathsep,
+                                                 current_path_env)
+        # PYTHONPATH
         resources = self.user_config.storage_dir / self._name / 'resources'
         for python_path in [self.user_config.storage_dir, resources]:
             if python_path not in sys.path:

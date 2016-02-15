@@ -1,0 +1,15 @@
+blueprint_path: ../blueprints/functions/blueprint.yaml
+name: functions
+user_config_path: { env: USER_CONF_PATH }
+
+templates:
+- &command
+  function: claw_test_functions:testing_function
+  args:
+  - name: arg1
+  - name: --arg2
+
+commands:
+  command1: *command
+  nested:
+    command2: *command

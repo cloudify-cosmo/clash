@@ -108,3 +108,13 @@ class TestUserCommands(tests.BaseTest):
         self.assertIn('EVENT2', output2)
         self.assertIn('EVENT3 env: .local, verbose: True, '
                       'workflow: workflow4', output3)
+
+    def test_functions(self):
+        config_path = 'functions.yaml'
+        self.dispatch(config_path, 'env', 'create')
+        self.dispatch(config_path, 'init')
+        for command in [['command1'], ['nested', 'command2']]:
+            args = ['val1', '--arg2', 'val2']
+            command += args
+            output = self.dispatch(config_path, *command).stdout
+            self.assertIn('val1 val2', output)
