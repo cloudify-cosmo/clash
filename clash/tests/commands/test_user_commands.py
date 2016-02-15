@@ -116,5 +116,5 @@ class TestUserCommands(tests.BaseTest):
         for command in [['command1'], ['nested', 'command2']]:
             args = ['val1', '--arg2', 'val2']
             command += args
-            output = self.dispatch(config_path, *command).stdout
-            self.assertIn('val1 val2', output)
+            output = self.dispatch(config_path, *command).stdout.strip()
+            self.assertEqual('val1 val2 functions', output)

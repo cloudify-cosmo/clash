@@ -14,5 +14,12 @@
 # limitations under the License.
 ############
 
-from clash.loader import dispatch  # noqa
-from clash.state import ctx  # noqa
+from proxy_tools import proxy
+from cloudify.state import CurrentContext
+
+current_loader = CurrentContext()
+
+
+@proxy
+def ctx():
+    return current_loader.get_ctx()

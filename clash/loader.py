@@ -33,6 +33,7 @@ from clash import output
 from clash import functions
 from clash import module
 from clash import config
+from clash import state
 
 
 class Loader(object):
@@ -87,7 +88,11 @@ class Loader(object):
                 function = module.load_attribute(command['function'])
                 kwargs = vars(args)
                 kwargs.pop('_functions_stack', None)
-                return function(**kwargs)
+                state.current_loader.set(self)
+                try:
+                    return function(**kwargs)
+                finally:
+                    state.current_loader.clear()
         else:
             @argh.expects_obj
             @argh.named(name)
@@ -107,7 +112,7 @@ class Loader(object):
                 command_task_config = command.get('task', {})
                 task_config.update(global_task_config)
                 task_config.update(command_task_config)
-                env = self._load_env()
+                env = self.env
 
                 event_cls = command.get('event_cls',
                                         self.config.event_cls)
@@ -144,6 +149,10 @@ class Loader(object):
                                       argv=user_command_args)
         self._add_args_to_func(func, macro.get('args', []), skip_env=False)
         return func
+
+    @property
+    def env(self):
+        return self._load_env()
 
     def _load_env(self):
         return local.load_env(name=self._name, storage=self._storage())
@@ -311,7 +320,7 @@ class Loader(object):
     @argh.named('status')
     def _status_command(self, json=False):
         try:
-            outputs = self._load_env().outputs()
+            outputs = self.env.outputs()
         except Exception as e:
             outputs = {'error': str(e)}
         status = {
