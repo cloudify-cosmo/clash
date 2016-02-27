@@ -121,7 +121,7 @@ class Loader(object):
                                     env=env,
                                     command=command)
 
-                env.execute(
+                return env.execute(
                     workflow=command['workflow'],
                     parameters=parameters,
                     task_retries=task_config['retries'],
