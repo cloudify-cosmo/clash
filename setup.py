@@ -29,7 +29,7 @@ setup(
         'argcomplete',
         'ansicolors',
         'argh',
-        'path.py',
+        'path.py==8.1.2',
         'cloudify-plugins-common==3.3.1',
         'cloudify-dsl-parser==3.3.1',
         'cloudify-script-plugin==1.3.1'
